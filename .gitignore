@@ -1,0 +1,3 @@
+TEST
+bin/*.o
+bin/*.d
