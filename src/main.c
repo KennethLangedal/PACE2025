@@ -1,4 +1,5 @@
 #include "graph.h"
+#include "local_search.h"
 #include "dom_lb.h"
 
 #include <stdio.h>
@@ -23,7 +24,18 @@ int main(int argc, char **argv)
     if (!graph_validate(g))
         printf("Error in graph\n");
     else
-        printf("%s, |V|=%d, |E|=%d, SD=%d\n", argv[1] + offset, g->n, g->m, dom_sum_degree_bound(g));
+        printf("%s, |V|=%d, |E|=%d, SD=%d, EF=%d\n", argv[1] + offset, g->n, g->m,
+               dom_sum_degree_bound(g),
+               dom_efficiency_bound(g));
+
+    local_search *ls = local_search_init(g, 0);
+
+    local_search_explore(g, ls, 60, 1);
+
+    if (!local_search_validate_solution(g, ls))
+        printf("Error in solution\n");
+
+    local_search_free(ls);
 
     graph_free(g);
 

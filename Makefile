@@ -3,7 +3,7 @@ SHELL = /bin/bash
 CC = gcc
 CFLAGS = -std=gnu17 -O3 -march=native -I include -fopenmp -DNDEBUG
 
-OBJ_TEST = main.o graph.o dom_lb.o
+OBJ_TEST = main.o graph.o dom_lb.o local_search.o
 OBJ_TEST := $(addprefix bin/, $(OBJ_TEST))
 
 DEP = $(OBJ_TEST)
