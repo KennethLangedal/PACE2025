@@ -1,6 +1,5 @@
-#include "graph.h"
-#include "local_search.h"
-#include "dom_lb.h"
+#include "hypergraph.h"
+#include "reductions.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,10 +7,10 @@
 int main(int argc, char **argv)
 {
     FILE *f = fopen(argv[1], "r");
-    graph *g = graph_parse(f);
+    hypergraph *g = hypergraph_parse(f);
     fclose(f);
 
-    graph_sort_edges(g);
+    hypergraph_sort(g);
 
     int offset = 0, i = 0;
     while (argv[1][i] != '\0')
@@ -21,23 +20,42 @@ int main(int argc, char **argv)
         i++;
     }
 
-    if (!graph_validate(g))
+    if (!hypergraph_validate(g))
         printf("Error in graph\n");
-    else
-        printf("%s, |V|=%d, |E|=%d, SD=%d, EF=%d\n", argv[1] + offset, g->n, g->m,
-               dom_sum_degree_bound(g),
-               dom_efficiency_bound(g));
 
-    local_search *ls = local_search_init(g, 0);
+    int r = 1;
+    while (r > 0)
+    {
+        r = 0;
+        r += reduction_vertex_domination(g);
+        r += reduction_edge_domination(g);
+    }
 
-    local_search_explore(g, ls, 60, 1);
+    int md = 0;
+    for (int i = 0; i < g->m; i++)
+    {
+        if (g->Ed[i] > md)
+            md = g->Ed[i];
+    }
 
-    if (!local_search_validate_solution(g, ls))
-        printf("Error in solution\n");
+    int rv = 0, re = 0;
+    for (int i = 0; i < g->n; i++)
+    {
+        if (g->Vd[i] > 0)
+            rv++;
+    }
+    for (int i = 0; i < g->m; i++)
+    {
+        if (g->Ed[i] > 0)
+            re++;
+    }
 
-    local_search_free(ls);
+    if (!hypergraph_validate(g))
+        printf("Error\n");
 
-    graph_free(g);
+    printf("%10s %9d (%9d) %9d (%9d) %d\n", argv[1] + offset, g->n, rv, g->m, re, md);
+
+    hypergraph_free(g);
 
     return 0;
 }

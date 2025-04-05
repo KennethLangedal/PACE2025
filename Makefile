@@ -1,22 +1,22 @@
 SHELL = /bin/bash
 
 CC = gcc
-CFLAGS = -std=gnu17 -O3 -march=native -I include -fopenmp -DNDEBUG
+CFLAGS = -g -std=gnu17 -O3 -march=native -I include -DNDEBUG
 
-OBJ_TEST = main.o graph.o dom_lb.o local_search.o
-OBJ_TEST := $(addprefix bin/, $(OBJ_TEST))
+OBJ_EXACT = main.o hypergraph.o reductions.o
+OBJ_EXACT := $(addprefix bin/, $(OBJ_EXACT))
 
-DEP = $(OBJ_TEST)
+DEP = $(OBJ_EXACT)
 DEP := $(sort $(DEP))
 
 vpath %.c src
 vpath %.h include
 
-all : TEST
+all : EXACT
 
 -include $(DEP:.o=.d)
 
-TEST : $(OBJ_TEST)
+EXACT : $(OBJ_EXACT)
 	$(CC) $(CFLAGS) -o $@ $^ -lm
 
 bin/%.o : %.c
@@ -24,4 +24,4 @@ bin/%.o : %.c
 
 .PHONY : clean
 clean :
-	rm -f TEST $(DEP) $(DEP:.o=.d)
+	rm -f EXACT $(DEP) $(DEP:.o=.d)

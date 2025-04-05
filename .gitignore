@@ -2,3 +2,4 @@ TEST
 bin/*.o
 bin/*.d
 .vscode/*
+EXACT
