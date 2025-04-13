@@ -1,9 +1,9 @@
 SHELL = /bin/bash
 
 CC = gcc
-CFLAGS = -g -std=gnu17 -O3 -march=native -I include -DNDEBUG
+CFLAGS = -g -std=gnu17 -O3 -march=native -I include # -DNDEBUG
 
-OBJ_EXACT = main.o hypergraph.o reductions.o
+OBJ_EXACT = main.o hypergraph.o graph.o reductions.o
 OBJ_EXACT := $(addprefix bin/, $(OBJ_EXACT))
 
 DEP = $(OBJ_EXACT)

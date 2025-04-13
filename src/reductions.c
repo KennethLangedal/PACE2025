@@ -1,5 +1,8 @@
 #include "reductions.h"
 
+#include <assert.h>
+#include <stdlib.h>
+
 // Test if A is a subset of B
 static inline int test_subset(const int *A, int a, const int *B, int b)
 {
@@ -88,4 +91,48 @@ int reduction_edge_domination(hypergraph *g)
         }
     }
     return r;
+}
+
+graph *reduction_mwis(hypergraph *hg)
+{
+    graph *g = graph_init();
+
+    for (int i = 0; i < hg->n; i++)
+    {
+        graph_add_vertex(g, 1);
+    }
+
+    for (int i = 0; i < hg->m; i++)
+    {
+        if (hg->Ed[i] == 0)
+            continue;
+        else if (hg->Ed[i] == 2)
+        {
+            graph_add_edge(g, hg->E[i][0], hg->E[i][1]);
+            continue;
+        }
+        int s = g->n;
+        for (int j = 0; j < hg->Ed[i]; j++)
+        {
+            graph_add_vertex(g, 1000);
+        }
+        // Make clique
+        for (int j = s; j < g->n; j++)
+        {
+            for (int k = j + 1; k < g->n; k++)
+            {
+                graph_add_edge(g, j, k);
+            }
+        }
+        // Connect to top layer
+        for (int j = 0; j < hg->Ed[i]; j++)
+        {
+            int v = hg->E[i][j];
+            graph_add_edge(g, v, s + j);
+        }
+    }
+
+    graph_sort_edges(g);
+
+    return g;
 }

@@ -1,4 +1,5 @@
 #include "hypergraph.h"
+#include "graph.h"
 #include "reductions.h"
 
 #include <stdio.h>
@@ -7,10 +8,10 @@
 int main(int argc, char **argv)
 {
     FILE *f = fopen(argv[1], "r");
-    hypergraph *g = hypergraph_parse(f);
+    hypergraph *hg = hypergraph_parse(f);
     fclose(f);
 
-    hypergraph_sort(g);
+    hypergraph_sort(hg);
 
     int offset = 0, i = 0;
     while (argv[1][i] != '\0')
@@ -20,42 +21,60 @@ int main(int argc, char **argv)
         i++;
     }
 
-    if (!hypergraph_validate(g))
+    if (!hypergraph_validate(hg))
         printf("Error in graph\n");
 
     int r = 1;
     while (r > 0)
     {
         r = 0;
-        r += reduction_vertex_domination(g);
-        r += reduction_edge_domination(g);
+        r += reduction_vertex_domination(hg);
+        r += reduction_edge_domination(hg);
     }
 
     int md = 0;
-    for (int i = 0; i < g->m; i++)
+    for (int i = 0; i < hg->m; i++)
     {
-        if (g->Ed[i] > md)
-            md = g->Ed[i];
+        if (hg->Ed[i] > md)
+            md = hg->Ed[i];
     }
 
     int rv = 0, re = 0;
-    for (int i = 0; i < g->n; i++)
+    for (int i = 0; i < hg->n; i++)
     {
-        if (g->Vd[i] > 0)
+        if (hg->Vd[i] > 0)
             rv++;
     }
-    for (int i = 0; i < g->m; i++)
+    for (int i = 0; i < hg->m; i++)
     {
-        if (g->Ed[i] > 0)
+        if (hg->Ed[i] > 0)
             re++;
     }
 
-    if (!hypergraph_validate(g))
+    if (!hypergraph_validate(hg))
         printf("Error\n");
 
-    printf("%10s %9d (%9d) %9d (%9d) %d\n", argv[1] + offset, g->n, rv, g->m, re, md);
+    // printf("%10s %9d (%9d) %9d (%9d) %d\n", argv[1] + offset, hg->n, rv, hg->m, re, md);
 
-    hypergraph_free(g);
+    graph *g = reduction_mwis(hg);
+
+    printf("%10s %9d %9d\n", argv[1] + offset, g->n, g->m / 2);
+
+    // f = fopen("test.gr", "w");
+    // fprintf(f, "%d %d %d\n", g->n, g->m / 2, 10);
+    // for (int i = 0; i < g->n; i++)
+    // {
+    //     fprintf(f, "%lld", g->W[i]);
+    //     for (int j = 0; j < g->D[i]; j++)
+    //     {
+    //         fprintf(f, " %d", g->V[i][j] + 1);
+    //     }
+    //     fprintf(f, "\n");
+    // }
+    // fclose(f);
+
+    graph_free(g);
+    hypergraph_free(hg);
 
     return 0;
 }

@@ -186,7 +186,7 @@ void hypergraph_sort(hypergraph *g)
         int d = 0;
         for (int j = 0; j < g->Vd[i]; j++)
         {
-            if (j == 0 || g->V[i][j] > g->V[i][j - 1])
+            if (j == 0 || g->V[i][j] > g->V[i][d - 1])
                 g->V[i][d++] = g->V[i][j];
         }
         g->Vd[i] = d;
@@ -196,7 +196,7 @@ void hypergraph_sort(hypergraph *g)
         int d = 0;
         for (int j = 0; j < g->Ed[i]; j++)
         {
-            if (j == 0 || g->E[i][j] > g->E[i][j - 1])
+            if (j == 0 || g->E[i][j] > g->E[i][d - 1])
                 g->E[i][d++] = g->E[i][j];
         }
         g->Ed[i] = d;
