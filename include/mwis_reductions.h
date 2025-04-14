@@ -4,81 +4,44 @@
 
 #include <stdarg.h>
 
-#define N_BUFFERS 3
+// red_data *red_data_init(graph *g);
 
-typedef struct
-{
-    int _a;
+// void red_data_free(red_data *rd);
 
-    // Buffers
-    int **buffers;
+// void reduce_graph(graph *g, int n_red, ...);
 
-    // Fast sets
-    int t;
-    int **fast_sets;
+// void lift_solution(graph *g, restore *rd);
 
-    // Changed list
-    int n;
-    int *changed;
+// // Low Degree Reduction Rules
 
-    long long offset;
+// // Degree Zero
 
-    // Reduction stack
-    int m;
-    void **reduction;
-} red_data;
+// int degree_zero_reduction(graph *g, int u, red_data *rd, void **rec);
 
-red_data *red_data_init(graph *g);
+// void degree_zero_reconstruct_graph(graph *g, red_data *rd, void *rec);
 
-void red_data_free(red_data *rd);
+// void degree_zero_reconstruct_solution(int *I, void *rec);
 
-typedef int (*func_reduce)(graph *, int, red_data *, void **);
-typedef void (*func_restore)(graph *, red_data *, void *);
-typedef void (*func_lift)(int *, void *);
-typedef void (*func_clear)(void *);
+// void degree_zero_free(void *rec);
 
-typedef struct
-{
-    func_reduce reduce;
-    func_restore restore;
-    func_lift lift;
-    func_clear clear;
-} reduction;
+// const reduction degree_zero = {
+//     .reduce = degree_zero_reduction,
+//     .restore = degree_zero_reconstruct_graph,
+//     .lift = degree_zero_reconstruct_solution,
+//     .clear = degree_zero_free};
 
-void reduce_graph(graph *g, int n_red, ...);
+// // Degree One
 
-void lift_solution(graph *g, restore *rd);
+// int degree_one_reduction(graph *g, int u, red_data *rd, void **rec);
 
-// Low Degree Reduction Rules
+// void degree_one_reconstruct_graph(graph *g, red_data *rd, void *rec);
 
-// Degree Zero
+// void degree_one_reconstruct_solution(int *I, void *rec);
 
-int degree_zero_reduction(graph *g, int u, red_data *rd, void **rec);
+// void degree_one_free(void *rec);
 
-void degree_zero_reconstruct_graph(graph *g, red_data *rd, void *rec);
-
-void degree_zero_reconstruct_solution(int *I, void *rec);
-
-void degree_zero_free(void *rec);
-
-const reduction degree_zero = {
-    .reduce = degree_zero_reduction,
-    .restore = degree_zero_reconstruct_graph,
-    .lift = degree_zero_reconstruct_solution,
-    .clear = degree_zero_free};
-
-// Degree One
-
-int degree_one_reduction(graph *g, int u, red_data *rd, void **rec);
-
-void degree_one_reconstruct_graph(graph *g, red_data *rd, void *rec);
-
-void degree_one_reconstruct_solution(int *I, void *rec);
-
-void degree_one_free(void *rec);
-
-const reduction degree_zero = {
-    .reduce = degree_one_reduction,
-    .restore = degree_one_reconstruct_graph,
-    .lift = degree_one_reconstruct_solution,
-    .clear = degree_one_free};
+// const reduction degree_zero = {
+//     .reduce = degree_one_reduction,
+//     .restore = degree_one_reconstruct_graph,
+//     .lift = degree_one_reconstruct_solution,
+//     .clear = degree_one_free};

@@ -56,7 +56,7 @@ int main(int argc, char **argv)
 
     // printf("%10s %9d (%9d) %9d (%9d) %d\n", argv[1] + offset, hg->n, rv, hg->m, re, md);
 
-    graph *g = reduction_mwis(hg);
+    graph *g = reduction_hitting_set_to_mwis(hg);
 
     printf("%10s %9d %9d\n", argv[1] + offset, g->n, g->m / 2);
 

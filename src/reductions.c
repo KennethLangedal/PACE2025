@@ -93,7 +93,7 @@ int reduction_edge_domination(hypergraph *g)
     return r;
 }
 
-graph *reduction_mwis(hypergraph *hg)
+graph *reduction_hitting_set_to_mwis(hypergraph *hg)
 {
     graph *g = graph_init();
 
@@ -135,4 +135,64 @@ graph *reduction_mwis(hypergraph *hg)
     graph_sort_edges(g);
 
     return g;
+}
+
+reduction_data *reduction_data_init(graph *g)
+{
+    reduction_data *rd = malloc(sizeof(reduction_data));
+
+    *rd = (reduction_data){._a = g->_a, .t = 1, .n_changed = 0, .offset = 0};
+
+    rd->buffers = malloc(sizeof(int *) * N_BUFFERS);
+    rd->fast_sets = malloc(sizeof(int *) * N_BUFFERS);
+
+    rd->changed = malloc(sizeof(int) * rd->_a);
+
+    for (int i = 0; i < N_BUFFERS; i++)
+    {
+        rd->buffers[i] = malloc(sizeof(int) * rd->_a);
+        rd->fast_sets[i] = malloc(sizeof(int) * rd->_a);
+
+        for (int j = 0; j < rd->_a; j++)
+        {
+            rd->fast_sets[i][j] = 0;
+        }
+    }
+
+    return rd;
+}
+
+void reduction_data_increase(reduction_data *rd)
+{
+    rd->_a *= 2;
+    rd->t = 1;
+
+    rd->changed = realloc(rd->changed, sizeof(int) * rd->_a);
+
+    for (int i = 0; i < N_BUFFERS; i++)
+    {
+        rd->buffers[i] = realloc(rd->buffers[i], sizeof(int) * rd->_a);
+        rd->fast_sets[i] = realloc(rd->fast_sets[i], sizeof(int) * rd->_a);
+
+        for (int j = 0; j < rd->_a; j++)
+        {
+            rd->fast_sets[i][j] = 0;
+        }
+    }
+}
+
+void reduction_data_free(reduction_data *rd)
+{
+    for (int i = 0; i < N_BUFFERS; i++)
+    {
+        free(rd->buffers[i]);
+        free(rd->fast_sets[i]);
+    }
+
+    free(rd->buffers);
+    free(rd->fast_sets);
+
+    free(rd->changed);
+
+    free(rd);
 }
