@@ -40,6 +40,13 @@ int main(int argc, char **argv)
             md = hg->Ed[i];
     }
 
+    int mdv = 0;
+    for (int i = 0; i < hg->n; i++)
+    {
+        if (hg->Vd[i] > mdv)
+            mdv = hg->Vd[i];
+    }
+
     int rv = 0, re = 0;
     for (int i = 0; i < hg->n; i++)
     {
@@ -55,7 +62,7 @@ int main(int argc, char **argv)
     if (!hypergraph_validate(hg))
         printf("Error\n");
 
-    printf("%10s %9d (%9d) %9d (%9d) %d\n", argv[1] + offset, hg->n, rv, hg->m, re, md);
+    printf("%10s %9d (%9d) %4d %9d (%9d) %4d\n", argv[1] + offset, hg->n, rv, mdv, hg->m, re, md);
 
     // graph *g = reduction_hitting_set_to_mwis(hg);
 
