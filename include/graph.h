@@ -2,7 +2,7 @@
 
 typedef struct
 {
-    int n, m, _a;
+    int n, m, r_n, _a;
     int **V, *D, *A, *_A;
     long long *W;
 } graph;

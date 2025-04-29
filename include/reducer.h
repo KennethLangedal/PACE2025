@@ -18,7 +18,7 @@ typedef struct
 typedef struct
 {
     int n, _a;
-    void **log_data;
+    reconstruction_data *log_data;
     reduction *log_rule;
 
     long long offset;

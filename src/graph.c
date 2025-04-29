@@ -39,7 +39,7 @@ static inline int graph_compare(const void *a, const void *b)
 graph *graph_init()
 {
     graph *g = malloc(sizeof(graph));
-    *g = (graph){.n = 0, .m = 0, ._a = (1 << 10)};
+    *g = (graph){.n = 0, .m = 0, .r_n = 0, ._a = (1 << 10)};
 
     g->V = malloc(sizeof(int *) * g->_a);
     g->D = malloc(sizeof(int) * g->_a);
@@ -99,6 +99,7 @@ void graph_add_vertex(graph *g, long long w)
     g->A[u] = 1;
     g->W[u] = w;
     g->n++;
+    g->r_n++;
 }
 
 void graph_add_edge(graph *g, int u, int v)
@@ -218,6 +219,7 @@ void graph_deactivate_vertex(graph *g, int u)
         graph_remove_endpoint_lin(g, v, u);
     }
     g->A[u] = 0;
+    g->r_n--;
 }
 
 void graph_activate_vertex(graph *g, int u)
@@ -230,6 +232,7 @@ void graph_activate_vertex(graph *g, int u)
         graph_insert_endpoint_lin(g, v, u);
     }
     g->A[u] = 1;
+    g->r_n++;
 }
 
 void graph_deactivate_neighborhood(graph *g, int u)
@@ -242,6 +245,7 @@ void graph_deactivate_neighborhood(graph *g, int u)
         g->A[v] = 0;
     }
     g->A[u] = 0;
+    g->r_n -= g->D[u] + 1;
 
     for (int i = 0; i < g->D[u]; i++)
     {
@@ -268,7 +272,7 @@ void graph_activate_neighborhood(graph *g, int u)
             int w = g->V[v][j];
             if (!g->A[w])
                 continue;
-            graph_remove_endpoint_lin(g, w, v);
+            graph_insert_endpoint_lin(g, w, v);
         }
     }
 
@@ -278,4 +282,5 @@ void graph_activate_neighborhood(graph *g, int u)
         g->A[v] = 0;
     }
     g->A[u] = 0;
+    g->r_n += g->D[u] + 1;
 }

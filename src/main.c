@@ -1,5 +1,6 @@
 #include "hypergraph.h"
 #include "graph.h"
+#include "reducer.h"
 #include "reductions.h"
 
 #include <stdio.h>
@@ -24,12 +25,12 @@ int main(int argc, char **argv)
     if (!hypergraph_validate(hg))
         printf("Error in graph\n");
 
-    int r = 1;
-    while (r > 0)
+    int nr = 1;
+    while (nr > 0)
     {
-        r = 0;
-        r += reduction_vertex_domination(hg);
-        r += reduction_edge_domination(hg);
+        nr = 0;
+        nr += reduction_vertex_domination(hg);
+        nr += reduction_edge_domination(hg);
     }
 
     int md = 0;
@@ -54,11 +55,31 @@ int main(int argc, char **argv)
     if (!hypergraph_validate(hg))
         printf("Error\n");
 
-    // printf("%10s %9d (%9d) %9d (%9d) %d\n", argv[1] + offset, hg->n, rv, hg->m, re, md);
+    printf("%10s %9d (%9d) %9d (%9d) %d\n", argv[1] + offset, hg->n, rv, hg->m, re, md);
 
-    graph *g = reduction_hitting_set_to_mwis(hg);
+    // graph *g = reduction_hitting_set_to_mwis(hg);
 
-    printf("%10s %9d %9d\n", argv[1] + offset, g->n, g->m / 2);
+    // reducer *r = reducer_init(g, 3,
+    //                           degree_zero_reduction,
+    //                           degree_one_reduction,
+    //                           domination_reduction);
+
+    // reduction_log *l = reducer_reduce(r, g);
+
+    // int m = 0;
+    // for (int u = 0; u < g->n; u++)
+    // {
+    //     if (!g->A[u])
+    //         continue;
+    //     m += g->D[u];
+    // }
+
+    // printf("%20s %10d %10d\n", argv[1] + offset, g->r_n, m / 2);
+
+    // reducer_free_reduction_log(l);
+    // reducer_free(r);
+
+    // printf("%10s %9d %9d\n", argv[1] + offset, g->n, g->m / 2);
 
     // f = fopen("test.gr", "w");
     // fprintf(f, "%d %d %d\n", g->n, g->m / 2, 10);
@@ -73,7 +94,7 @@ int main(int argc, char **argv)
     // }
     // fclose(f);
 
-    graph_free(g);
+    // graph_free(g);
     hypergraph_free(hg);
 
     return 0;

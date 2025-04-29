@@ -141,7 +141,7 @@ reduction_data *reduction_data_init(graph *g)
 {
     reduction_data *rd = malloc(sizeof(reduction_data));
 
-    *rd = (reduction_data){._a = g->_a, .t = 1, .n_changed = 0, .offset = 0};
+    *rd = (reduction_data){._a = g->_a, .t = 1, .n_changed = 0};
 
     rd->buffers = malloc(sizeof(int *) * N_BUFFERS);
     rd->fast_sets = malloc(sizeof(int *) * N_BUFFERS);
@@ -195,4 +195,168 @@ void reduction_data_free(reduction_data *rd)
     free(rd->changed);
 
     free(rd);
+}
+
+void queue_neighborhood(graph *g, int u, reduction_data *rd)
+{
+    for (int i = 0; i < g->D[u]; i++)
+    {
+        int v = g->V[u][i];
+        if (!g->A[v])
+            continue;
+        rd->changed[rd->n_changed++] = v;
+    }
+}
+
+int degree_zero_reduce(graph *g, int u, reduction_data *rd, reconstruction_data *rc)
+{
+    assert(g->A[u]);
+
+    if (g->D[u] == 0)
+    {
+        graph_deactivate_vertex(g, u);
+
+        rc->offset = g->W[u];
+        rc->u = u;
+
+        rd->n_changed = 0;
+        return 1;
+    }
+
+    return 0;
+}
+
+void degree_zero_reconstruct_graph(graph *g, reconstruction_data *rc)
+{
+    assert(!g->A[rc->u]);
+
+    graph_activate_vertex(g, rc->u);
+}
+
+void degree_zero_reconstruct_solution(int *I, reconstruction_data *rc)
+{
+    I[rc->u] = 1;
+}
+
+void degree_zero_free(reconstruction_data *rc)
+{
+}
+
+int degree_one_reduce(graph *g, int u, reduction_data *rd, reconstruction_data *rc)
+{
+    assert(g->A[u]);
+
+    if (g->D[u] == 1)
+    {
+        int v = g->V[u][0];
+
+        rc->offset = g->W[u];
+
+        rd->n_changed = 0;
+        queue_neighborhood(g, v, rd);
+
+        rc->u = u;
+        rc->v = v;
+        rc->x = 0;
+
+        if (g->W[u] >= g->W[v])
+        {
+            graph_deactivate_neighborhood(g, u);
+        }
+        else
+        {
+            graph_deactivate_vertex(g, u);
+            g->W[v] -= g->W[u];
+            rc->x = 1;
+        }
+
+        return 1;
+    }
+
+    return 0;
+}
+
+void degree_one_reconstruct_graph(graph *g, reconstruction_data *rc)
+{
+    int u = rc->u, v = rc->v;
+
+    if (rc->x)
+    {
+        assert(!g->A[u] && g->A[v]);
+        graph_activate_vertex(g, u);
+        g->W[v] += g->W[u];
+    }
+    else
+    {
+        assert(!g->A[u] && !g->A[v]);
+        graph_activate_neighborhood(g, u);
+    }
+}
+
+void degree_one_reconstruct_solution(int *I, reconstruction_data *rc)
+{
+    int u = rc->u, v = rc->v;
+
+    if (rc->x)
+    {
+        if (!I[v])
+            I[u] = 1;
+    }
+    else
+    {
+        I[v] = 0;
+        I[u] = 1;
+    }
+}
+
+void degree_one_free(reconstruction_data *rc)
+{
+}
+
+int domination_reduce(graph *g, int u, reduction_data *rd, reconstruction_data *rc)
+{
+    assert(g->A[u]);
+
+    int md = -1;
+    for (int i = 0; i < g->D[u]; i++)
+    {
+        int v = g->V[u][i];
+        if (md < 0 || g->D[md] > g->D[v])
+            md = v;
+    }
+
+    for (int i = 0; i < g->D[md]; i++)
+    {
+        int v = g->V[md][i];
+        if (v != u && g->W[v] <= g->W[u] && test_subset(g->V[u], g->D[u], g->V[v], g->D[v]))
+        {
+            graph_deactivate_vertex(g, v);
+
+            rd->n_changed = 0;
+            queue_neighborhood(g, v, rd);
+
+            rc->u = v;
+            rc->offset = 0;
+
+            return 1;
+        }
+    }
+    return 0;
+}
+
+void domination_reconstruct_graph(graph *g, reconstruction_data *rc)
+{
+    int u = rc->u;
+    assert(!g->A[u]);
+
+    graph_activate_vertex(g, u);
+}
+
+void domination_reconstruct_solution(int *I, reconstruction_data *rc)
+{
+    I[rc->u] = 0;
+}
+
+void domination_free(reconstruction_data *rc)
+{
 }
