@@ -2,11 +2,21 @@
 #include "graph.h"
 #include "reductions.h"
 
+#include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
 
+double get_wtime()
+{
+    struct timespec tp;
+    clock_gettime(CLOCK_REALTIME, &tp);
+    return (double)tp.tv_sec + ((double)tp.tv_nsec / 1e9);
+}
+
 int main(int argc, char **argv)
 {
+    double t0 = get_wtime();
+
     FILE *f = fopen(argv[1], "r");
     hypergraph *hg = hypergraph_parse(f);
     fclose(f);
@@ -24,13 +34,20 @@ int main(int argc, char **argv)
     if (!hypergraph_validate(hg))
         printf("Error in graph\n");
 
-    int nr = 1;
-    while (nr > 0)
-    {
-        nr = 0;
-        nr += reduction_vertex_domination(hg);
-        nr += reduction_edge_domination(hg);
-    }
+    // int nr = 1;
+    // while (nr > 0)
+    // {
+    // nr = 0;
+    // nr += reduction_vertex_domination(hg);
+    // nr += reduction_edge_domination(hg);
+    // }
+
+    reduction_vertex_domination(hg);
+    reduction_edge_domination(hg);
+    reduction_vertex_domination(hg);
+    reduction_edge_domination(hg);
+
+    double t1 = get_wtime();
 
     int md = 0;
     for (int i = 0; i < hg->m; i++)
@@ -61,7 +78,8 @@ int main(int argc, char **argv)
     if (!hypergraph_validate(hg))
         printf("Error\n");
 
-    printf("%10s %9d (%9d) %4d %9d (%9d) %4d\n", argv[1] + offset, hg->n, rv, mdv, hg->m, re, md);
+    printf("%10s %9d (%9d) %4d %9d (%9d) %4d %8.4lf\n",
+           argv[1] + offset, hg->n, rv, mdv, hg->m, re, md, t1 - t0);
 
     // graph *g = reduction_hitting_set_to_mwis(hg);
 

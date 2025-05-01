@@ -12,13 +12,13 @@ static inline int test_subset(const int *A, int a, const int *B, int b)
     int i = 0, j = 0;
     while (i < a && j < b)
     {
-        if (A[i] > B[j])
-        {
-            j++;
-        }
-        else if (A[i] == B[j])
+        if (A[i] == B[j])
         {
             i++;
+            j++;
+        }
+        else if (A[i] > B[j])
+        {
             j++;
         }
         else
@@ -79,8 +79,8 @@ int reduction_edge_domination(hypergraph *g)
 
         for (int j = 0; j < g->Vd[md]; j++)
         {
-            int e = g->V[md][j];
-            if (e == i)
+            int e = g->V[md][j];    
+            if (e == i || g->Ed[e] < g->Ed[i] || (g->Ed[e] == g->Ed[i] && e < i) || g->Ed[e] < 128)
                 continue;
 
             if (test_subset(g->E[i], g->Ed[i], g->E[e], g->Ed[e]))

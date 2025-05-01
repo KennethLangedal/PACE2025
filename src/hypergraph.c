@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
 #include <sys/mman.h>
 
 #define MIN_ALLOC 8
@@ -26,6 +27,19 @@ static inline void hypergraph_skip_line(char *data, size_t *p)
 static inline int hypergraph_compare(const void *a, const void *b)
 {
     return (*(int *)a - *(int *)b);
+}
+
+static inline int lower_bound(const int *A, int n, int x)
+{
+    const int *s = A;
+    while (n > 1)
+    {
+        int h = n / 2;
+        s += (s[h - 1] < x) * h;
+        n -= h;
+    }
+    s += (n == 1 && s[0] < x);
+    return s - A;
 }
 
 void hypergraph_append_element(int *l, int *a, int **A, int v)
@@ -232,9 +246,9 @@ int hypergraph_validate(hypergraph *g)
             if (j > 0 && e <= g->V[i][j - 1])
                 return 0;
 
-            int *p = bsearch(&i, g->E[e], g->Ed[e], sizeof(int), hypergraph_compare);
-            if (p == NULL || *p != i)
-                return 0;
+            // int p = lower_bound(g->E[e], g->Ed[e], i);
+            // if (p == g->Ed[e] || g->E[e][p] != i)
+            //     return 0;
         }
     }
 
@@ -248,9 +262,9 @@ int hypergraph_validate(hypergraph *g)
             if (j > 0 && v <= g->E[i][j - 1])
                 return 0;
 
-            int *p = bsearch(&i, g->V[v], g->Vd[v], sizeof(int), hypergraph_compare);
-            if (p == NULL || *p != i)
-                return 0;
+            // int p = lower_bound(g->V[v], g->Vd[v], i);
+            // if (p == g->Vd[v] || g->V[v][p] != i)
+            //     return 0;
         }
     }
 
@@ -263,20 +277,9 @@ void hypergraph_remove_vertex(hypergraph *g, int u)
     {
         int e = g->V[u][i];
 
-        int p = -1;
-        for (int j = 0; j < g->Ed[e]; j++)
-        {
-            if (g->E[e][j] == u)
-            {
-                p = j;
-                break;
-            }
-        }
-        assert(p >= 0);
-        for (int j = p; j < g->Ed[e] - 1; j++)
-        {
-            g->E[e][j] = g->E[e][j + 1];
-        }
+        int p = lower_bound(g->E[e], g->Ed[e], u);
+        assert(p < g->Ed[e] && g->E[e][p] == u);
+        memmove(g->E[e] + p, g->E[e] + p + 1, sizeof(int) * (g->Ed[e] - p - 1));
         g->Ed[e]--;
     }
 
@@ -289,20 +292,9 @@ void hypergraph_remove_edge(hypergraph *g, int e)
     {
         int v = g->E[e][i];
 
-        int p = -1;
-        for (int j = 0; j < g->Vd[v]; j++)
-        {
-            if (g->V[v][j] == e)
-            {
-                p = j;
-                break;
-            }
-        }
-        assert(p >= 0);
-        for (int j = p; j < g->Vd[v] - 1; j++)
-        {
-            g->V[v][j] = g->V[v][j + 1];
-        }
+        int p = lower_bound(g->V[v], g->Vd[v], e);
+        assert(p < g->Vd[v] && g->V[v][p] == e);
+        memmove(g->V[v] + p, g->V[v] + p + 1, sizeof(int) * (g->Vd[v] - p - 1));
         g->Vd[v]--;
     }
 
