@@ -1,6 +1,5 @@
 #include "hypergraph.h"
 #include "graph.h"
-#include "reducer.h"
 #include "reductions.h"
 
 #include <stdio.h>
