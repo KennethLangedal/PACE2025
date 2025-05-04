@@ -30,6 +30,36 @@ static inline int test_subset(const int *A, int a, const int *B, int b)
     return i == a;
 }
 
+int reduction_degree_one_rule(hypergraph *g)
+{
+    int r = 0;
+    for (int u = 0; u < g->n; u++)
+    {
+        if (g->Vd[u] != 1)
+            continue;
+
+        int e = g->V[u][0];
+        if (g->Ed[e] > 1)
+        {
+            r++;
+            hypergraph_remove_vertex(g, u);
+        }
+    }
+    for (int e = 0; e < g->m; e++)
+    {
+        if (g->Ed[e] != 1)
+            continue;
+
+        int u = g->E[e][0];
+        if (g->Vd[u] > 1)
+        {
+            r++;
+            hypergraph_include_vertex(g, u);
+        }
+    }
+    return r;
+}
+
 int reduction_vertex_domination(hypergraph *g)
 {
     int r = 0;
@@ -42,7 +72,7 @@ int reduction_vertex_domination(hypergraph *g)
             if (md < 0 || g->Ed[e] < g->Ed[md])
                 md = e;
         }
-        if (md < 0)
+        if (md < 0 || g->Ed[md] > (1 << 10))
             continue;
 
         for (int j = 0; j < g->Ed[md]; j++)
@@ -65,31 +95,73 @@ int reduction_vertex_domination(hypergraph *g)
 int reduction_edge_domination(hypergraph *g)
 {
     int r = 0;
-    for (int i = 0; i < g->m; i++)
+    for (int e = 0; e < g->m; e++)
     {
         int md = -1;
-        for (int j = 0; j < g->Ed[i]; j++)
+        for (int i = 0; i < g->Ed[e]; i++)
         {
-            int v = g->E[i][j];
+            int v = g->E[e][i];
             if (md < 0 || g->Vd[v] < g->Vd[md])
                 md = v;
         }
-        if (md < 0)
+        if (md < 0 || g->Vd[md] > (1 << 10))
             continue;
 
-        for (int j = 0; j < g->Vd[md]; j++)
+        for (int i = 0; i < g->Vd[md]; i++)
         {
-            int e = g->V[md][j];    
-            if (e == i || g->Ed[e] < g->Ed[i] || (g->Ed[e] == g->Ed[i] && e < i) || g->Ed[e] < 128)
+            int e2 = g->V[md][i];
+            if (e2 == e)
                 continue;
 
-            if (test_subset(g->E[i], g->Ed[i], g->E[e], g->Ed[e]))
+            if (test_subset(g->E[e], g->Ed[e], g->E[e2], g->Ed[e2]))
             {
                 r++;
-                hypergraph_remove_edge(g, e);
+                hypergraph_remove_edge(g, e2);
             }
         }
     }
+    return r;
+}
+
+int reduction_counting_rule(hypergraph *g)
+{
+    int r = 0;
+    int *fast_set = malloc(sizeof(int) * g->m);
+    for (int i = 0; i < g->m; i++)
+        fast_set[i] = -1;
+
+    for (int u = 0; u < g->n; u++)
+    {
+        int c = 0, k = 0;
+        for (int i = 0; i < g->Vd[u]; i++)
+        {
+            int e = g->V[u][i];
+            if (g->Ed[e] != 2)
+                continue;
+
+            c++;
+
+            int v = g->E[e][0] == u ? g->E[e][1] : g->E[e][0];
+
+            for (int j = 0; j < g->Vd[v]; j++)
+            {
+                int e2 = g->V[v][j];
+                if (e2 == e)
+                    continue;
+
+                if (fast_set[e2] != u)
+                    k++;
+                fast_set[e2] = u;
+            }
+        }
+
+        if (k < c)
+        {
+            r++;
+            hypergraph_include_vertex(g, u);
+        }
+    }
+    free(fast_set);
     return r;
 }
 

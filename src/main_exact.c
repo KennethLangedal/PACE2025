@@ -34,31 +34,34 @@ int main(int argc, char **argv)
     if (!hypergraph_validate(hg))
         printf("Error in graph\n");
 
-    // int nr = 1;
-    // while (nr > 0)
-    // {
-    // nr = 0;
-    // nr += reduction_vertex_domination(hg);
-    // nr += reduction_edge_domination(hg);
-    // }
-
-    reduction_vertex_domination(hg);
-    reduction_edge_domination(hg);
-    reduction_vertex_domination(hg);
-    reduction_edge_domination(hg);
+    int nr = 1, lc = 0;
+    while (nr > 0)
+    {
+        nr = 0;
+        nr += reduction_vertex_domination(hg);
+        nr += reduction_degree_one_rule(hg);
+        nr += reduction_edge_domination(hg);
+        // nr += reduction_counting_rule(hg);
+        // nr += reduction_large_edge_rule(hg);
+        lc++;
+    }
 
     double t1 = get_wtime();
 
-    int md = 0;
+    int mde = 0;
+    long long total_de = 0;
     for (int i = 0; i < hg->m; i++)
     {
-        if (hg->Ed[i] > md)
-            md = hg->Ed[i];
+        total_de += hg->Ed[i] > 1 ? hg->Ed[i] : 0;
+        if (hg->Ed[i] > mde)
+            mde = hg->Ed[i];
     }
 
     int mdv = 0;
+    long long total_dv = 0;
     for (int i = 0; i < hg->n; i++)
     {
+        total_dv += hg->Vd[i] > 1 ? hg->Vd[i] : 0;
         if (hg->Vd[i] > mdv)
             mdv = hg->Vd[i];
     }
@@ -66,22 +69,26 @@ int main(int argc, char **argv)
     int rv = 0, re = 0;
     for (int i = 0; i < hg->n; i++)
     {
-        if (hg->Vd[i] > 0)
+        if (hg->Vd[i] > 1)
             rv++;
     }
     for (int i = 0; i < hg->m; i++)
     {
-        if (hg->Ed[i] > 0)
+        if (hg->Ed[i] > 1 && hg->Ed[i] < 16)
             re++;
     }
 
     if (!hypergraph_validate(hg))
         printf("Error\n");
 
-    printf("%10s %9d (%9d) %4d %9d (%9d) %4d %8.4lf\n",
-           argv[1] + offset, hg->n, rv, mdv, hg->m, re, md, t1 - t0);
+    printf("%10s %9d (%9d) %5d (%8.2lf) %9d (%9d) %5d (%8.2lf) %8.4lf %3d\n",
+           argv[1] + offset,
+           hg->n, rv, mdv, (double)total_dv / (double)rv,
+           hg->m, re, mde, (double)total_de / (double)re,
+           t1 - t0, lc);
 
-    // graph *g = reduction_hitting_set_to_mwis(hg);
+    // long long ds_offset;
+    // graph *g = reduction_hitting_set_to_mwis(hg, &ds_offset);
 
     // reducer *r = reducer_init(g, 3,
     //                           degree_zero_reduction,
@@ -104,6 +111,8 @@ int main(int argc, char **argv)
     // reducer_free(r);
 
     // printf("%10s %9d %9d\n", argv[1] + offset, g->n, g->m / 2);
+
+    // printf("%lld\n", ds_offset);
 
     // f = fopen("test.gr", "w");
     // fprintf(f, "%d %d %d\n", g->n, g->m / 2, 10);

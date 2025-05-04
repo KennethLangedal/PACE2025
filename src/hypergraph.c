@@ -95,7 +95,7 @@ hypergraph *hypergraph_parse_dominating_set(char *data, size_t *p)
     hypergraph *g = hypergraph_init(n, n);
 
     // Every vertex is part of their own hyperedge
-    for (int i = 0; i < n; i++)
+    for (int u = 0; u < n; u++)
     {
         hypergraph_append_element(g->Vd + u, g->Va + u, g->V + u, u);
         hypergraph_append_element(g->Ed + u, g->Ea + u, g->E + u, u);
@@ -187,6 +187,43 @@ hypergraph *hypergraph_parse(FILE *f)
     return g;
 }
 
+hypergraph *hypergraph_copy(hypergraph *g)
+{
+    hypergraph *c = malloc(sizeof(hypergraph));
+
+    *c = (hypergraph){.n = g->n, .m = g->m};
+
+    c->Vd = malloc(sizeof(int *) * c->n);
+    c->Va = malloc(sizeof(int *) * c->n);
+    c->V = malloc(sizeof(int *) * c->n);
+
+    for (int i = 0; i < c->n; i++)
+    {
+        c->Vd[i] = g->Vd[i];
+        c->Va[i] = g->Va[i];
+        c->V[i] = malloc(sizeof(int) * c->Va[i]);
+
+        for (int j = 0; j < c->Vd[i]; j++)
+            c->V[i][j] = g->V[i][j];
+    }
+
+    c->Ed = malloc(sizeof(int *) * c->m);
+    c->Ea = malloc(sizeof(int *) * c->m);
+    c->E = malloc(sizeof(int *) * c->m);
+
+    for (int i = 0; i < c->m; i++)
+    {
+        c->Ed[i] = g->Ed[i];
+        c->Ea[i] = g->Ea[i];
+        c->E[i] = malloc(sizeof(int) * c->Ea[i]);
+
+        for (int j = 0; j < c->Ed[i]; j++)
+            c->E[i][j] = g->E[i][j];
+    }
+
+    return c;
+}
+
 void hypergraph_sort(hypergraph *g)
 {
     for (int i = 0; i < g->n; i++)
@@ -246,9 +283,9 @@ int hypergraph_validate(hypergraph *g)
             if (j > 0 && e <= g->V[i][j - 1])
                 return 0;
 
-            // int p = lower_bound(g->E[e], g->Ed[e], i);
-            // if (p == g->Ed[e] || g->E[e][p] != i)
-            //     return 0;
+            int p = lower_bound(g->E[e], g->Ed[e], i);
+            if (p == g->Ed[e] || g->E[e][p] != i)
+                return 0;
         }
     }
 
@@ -262,9 +299,9 @@ int hypergraph_validate(hypergraph *g)
             if (j > 0 && v <= g->E[i][j - 1])
                 return 0;
 
-            // int p = lower_bound(g->V[v], g->Vd[v], i);
-            // if (p == g->Vd[v] || g->V[v][p] != i)
-            //     return 0;
+            int p = lower_bound(g->V[v], g->Vd[v], i);
+            if (p == g->Vd[v] || g->V[v][p] != i)
+                return 0;
         }
     }
 
@@ -299,4 +336,19 @@ void hypergraph_remove_edge(hypergraph *g, int e)
     }
 
     g->Ed[e] = 0;
+}
+
+void hypergraph_include_vertex(hypergraph *g, int u)
+{
+    if (g->Vd[u] == 0)
+        return;
+
+    int e = g->V[u][0];
+    while (g->Vd[u] > 0)
+        hypergraph_remove_edge(g, g->V[u][0]);
+
+    g->Ed[e] = 1;
+    g->E[e][0] = u;
+    g->Vd[u] = 1;
+    g->V[u][0] = e;
 }
