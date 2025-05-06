@@ -1,4 +1,4 @@
-#include "reductions.h"
+#include "hs_reductions.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -30,7 +30,7 @@ static inline int test_subset(const int *A, int a, const int *B, int b)
     return i == a;
 }
 
-int reduction_degree_one_rule(hypergraph *g)
+int hs_reductions_degree_one_rule(hypergraph *g)
 {
     int r = 0;
     for (int u = 0; u < g->n; u++)
@@ -60,7 +60,7 @@ int reduction_degree_one_rule(hypergraph *g)
     return r;
 }
 
-int reduction_vertex_domination(hypergraph *g)
+int hs_reductions_vertex_domination(hypergraph *g)
 {
     int r = 0;
     for (int i = 0; i < g->n; i++)
@@ -92,7 +92,7 @@ int reduction_vertex_domination(hypergraph *g)
     return r;
 }
 
-int reduction_edge_domination(hypergraph *g)
+int hs_reductions_edge_domination(hypergraph *g)
 {
     int r = 0;
     for (int e = 0; e < g->m; e++)
@@ -123,7 +123,7 @@ int reduction_edge_domination(hypergraph *g)
     return r;
 }
 
-int reduction_counting_rule(hypergraph *g)
+int hs_reductions_counting_rule(hypergraph *g)
 {
     int r = 0;
     int *fast_set = malloc(sizeof(int) * g->m);
@@ -165,7 +165,7 @@ int reduction_counting_rule(hypergraph *g)
     return r;
 }
 
-graph *reduction_hitting_set_to_mwis(hypergraph *hg, long long *offset)
+graph *hs_reductions_to_mwis(hypergraph *hg, int max_degree, long long *offset)
 {
     graph *g = graph_init();
     *offset = hg->n;
@@ -177,18 +177,18 @@ graph *reduction_hitting_set_to_mwis(hypergraph *hg, long long *offset)
 
     for (int i = 0; i < hg->m; i++)
     {
-        if (hg->Ed[i] == 0)
+        if (hg->Ed[i] == 0 || hg->Ed[i] > max_degree)
             continue;
         else if (hg->Ed[i] == 2)
         {
             graph_add_edge(g, hg->E[i][0], hg->E[i][1]);
             continue;
         }
-        *offset += 1000;
+        *offset += 10000;
         int s = g->n;
         for (int j = 0; j < hg->Ed[i]; j++)
         {
-            graph_add_vertex(g, 1000);
+            graph_add_vertex(g, 10000);
         }
         // Make clique
         for (int j = s; j < g->n; j++)
@@ -205,8 +205,6 @@ graph *reduction_hitting_set_to_mwis(hypergraph *hg, long long *offset)
             graph_add_edge(g, v, s + j);
         }
     }
-
-    graph_sort_edges(g);
 
     return g;
 }

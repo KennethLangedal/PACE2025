@@ -1,6 +1,6 @@
 #include "hypergraph.h"
 #include "graph_csr.h"
-#include "reductions.h"
+#include "hs_reductions.h"
 #include "chils.h"
 
 #include <time.h>
@@ -45,9 +45,10 @@ int main(int argc, char **argv)
     while (nr > 0)
     {
         nr = 0;
-        nr += reduction_degree_one_rule(hg);
-        nr += reduction_vertex_domination(hg);
-        nr += reduction_edge_domination(hg);
+        nr += hs_reductions_degree_one_rule(hg);
+        nr += hs_reductions_vertex_domination(hg);
+        nr += hs_reductions_edge_domination(hg);
+        nr += hs_reductions_counting_rule(hg);
         lc++;
     }
 

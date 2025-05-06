@@ -4,5 +4,5 @@ bin/*.d
 .vscode/*
 EXACT
 HEURISTIC
-mwis_reductions.a
+bin/libmwis_reductions.a
 include/mwis_reductions.h

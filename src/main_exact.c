@@ -1,6 +1,6 @@
 #include "hypergraph.h"
-#include "graph.h"
-#include "reductions.h"
+#include "hs_reductions.h"
+#include "mwis_reductions.h"
 
 #include <time.h>
 #include <stdio.h>
@@ -13,6 +13,18 @@ double get_wtime()
     return (double)tp.tv_sec + ((double)tp.tv_nsec / 1e9);
 }
 
+int name_offset(char *name)
+{
+    int offset = 0, i = 0;
+    while (name[i] != '\0')
+    {
+        if (name[i] == '/')
+            offset = i + 1;
+        i++;
+    }
+    return offset;
+}
+
 int main(int argc, char **argv)
 {
     double t0 = get_wtime();
@@ -23,14 +35,6 @@ int main(int argc, char **argv)
 
     hypergraph_sort(hg);
 
-    int offset = 0, i = 0;
-    while (argv[1][i] != '\0')
-    {
-        if (argv[1][i] == '/')
-            offset = i + 1;
-        i++;
-    }
-
     if (!hypergraph_validate(hg))
         printf("Error in graph\n");
 
@@ -38,13 +42,22 @@ int main(int argc, char **argv)
     while (nr > 0)
     {
         nr = 0;
-        nr += reduction_vertex_domination(hg);
-        nr += reduction_degree_one_rule(hg);
-        nr += reduction_edge_domination(hg);
-        // nr += reduction_counting_rule(hg);
-        // nr += reduction_large_edge_rule(hg);
+        nr += hs_reductions_vertex_domination(hg);
+        nr += hs_reductions_degree_one_rule(hg);
+        nr += hs_reductions_edge_domination(hg);
+        nr += hs_reductions_counting_rule(hg);
         lc++;
     }
+
+    long long offset;
+    graph *g = hs_reductions_to_mwis(hg, (1 << 8), &offset);
+
+    printf("%lld %lld\n", g->n, g->m);
+    void *rd = mwis_reduction_reduce_graph(g);
+    printf("%lld %lld\n", g->n, g->m);
+
+    mwis_reduction_free(rd);
+    graph_free(g);
 
     double t1 = get_wtime();
 
@@ -82,7 +95,7 @@ int main(int argc, char **argv)
         printf("Error\n");
 
     printf("%10s %9d (%9d) %5d (%8.2lf) %9d (%9d) %5d (%8.2lf) %8.4lf %3d\n",
-           argv[1] + offset,
+           argv[1] + name_offset(argv[1]),
            hg->n, rv, mdv, (double)total_dv / (double)rv,
            hg->m, re, mde, (double)total_de / (double)re,
            t1 - t0, lc);

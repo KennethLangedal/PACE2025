@@ -2,11 +2,12 @@ SHELL = /bin/bash
 
 CC = gcc
 CFLAGS = -g -std=gnu17 -O3 -march=native -I include # -DNDEBUG
+LDFLAGS = -L bin/ -lmwis_reductions
 
-OBJ_EXACT = main_exact.o hypergraph.o graph.o reductions.o
+OBJ_EXACT = main_exact.o hypergraph.o hs_reductions.o
 OBJ_EXACT := $(addprefix bin/, $(OBJ_EXACT))
 
-OBJ_HEURISTIC = main_heuristic.o hypergraph.o graph.o graph_csr.o reductions.o local_search.o chils.o
+OBJ_HEURISTIC = main_heuristic.o hypergraph.o graph_csr.o hs_reductions.o local_search.o chils.o
 OBJ_HEURISTIC := $(addprefix bin/, $(OBJ_HEURISTIC))
 
 DEP = $(OBJ_EXACT) $(OBJ_HEURISTIC)
@@ -20,10 +21,10 @@ all : EXACT HEURISTIC
 -include $(DEP:.o=.d)
 
 EXACT : $(OBJ_EXACT)
-	$(CC) $(CFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 HEURISTIC : $(OBJ_HEURISTIC)
-	$(CC) $(CFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 bin/%.o : %.c
 	$(CC) $(CFLAGS) -MMD -c $< -o $@
