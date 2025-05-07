@@ -1,6 +1,6 @@
 #pragma once
 
-#include "hypergraph.h"
+#include "mwis_reductions.h"
 
 typedef struct
 {
@@ -9,7 +9,7 @@ typedef struct
     long long *W;
 } graph_csr;
 
-graph_csr *graph_csr_construct(hypergraph *hg, int *FM, int max_edge, long long *offset);
+graph_csr *graph_csr_construct(graph *rg, int *FM);
 
 void graph_csr_free(graph_csr *g);
 

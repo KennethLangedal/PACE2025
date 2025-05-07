@@ -1,6 +1,7 @@
 #include <time.h>
 #include <limits.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "chils.h"
 

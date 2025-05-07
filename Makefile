@@ -1,7 +1,7 @@
 SHELL = /bin/bash
 
 CC = gcc
-CFLAGS = -g -std=gnu17 -O3 -march=native -I include # -DNDEBUG
+CFLAGS = -g -std=gnu17 -O3 -I include # -DNDEBUG
 LDFLAGS = -L bin/ -lmwis_reductions
 
 OBJ_EXACT = main_exact.o hypergraph.o hs_reductions.o

@@ -52,80 +52,40 @@ int main(int argc, char **argv)
         lc++;
     }
 
-    double t1 = get_wtime();
-
-    int in = 0, out = 0, remaining = 0;
-    for (int u = 0; u < hg->n; u++)
-    {
-        if (hg->Vd[u] == 0)
-            out++;
-        else if (hg->Vd[u] == 1)
-            in++;
-        else
-            remaining++;
-    }
-
-    // printf("After reductions, %d %d %d\n", in, out, remaining);
-
     if (!hypergraph_validate(hg))
         printf("Error in graph after reductions\n");
 
-    int *FM = malloc(sizeof(int) * hg->n);
     long long offset;
-    graph_csr *g = graph_csr_construct(hg, FM, (1 << 10), &offset);
+    graph *gr = hs_reductions_to_mwis(hg, (1 << 8), &offset);
+
+    printf("%lld %lld\n", gr->n, gr->m);
+    void *rd = mwis_reduction_reduce_graph(gr);
+    printf("%lld %lld\n", gr->n, gr->m);
+
+    offset -= mwis_reduction_get_offset(rd);
+
+    int *FM = malloc(sizeof(int) * gr->n);
+    graph_csr *g = graph_csr_construct(gr, FM);
+
+    if (!graph_csr_validate(g))
+        printf("Error in csr graph\n");
+
     chils *c = chils_init(g, 8, time(NULL));
+    c->step_time = 0.5;
+    chils_run(g, c, 60, 9999999, offset, 1);
 
-    // printf("%10d %10d\n", g->n, g->V[g->n]);
+    double t1 = get_wtime();
 
-    c->step_time = 1.0;
-    chils_run(g, c, 20, 9999999, offset, 1);
-
-    int *IS = chils_get_best_independent_set(c);
-
-    int *HS = malloc(sizeof(int) * hg->n);
-    for (int i = 0; i < hg->n; i++)
-    {
-        if (FM[i] >= 0)
-            HS[i] = !IS[FM[i]];
-        else
-        {
-            assert(hg->Vd[i] == 0 || hg->Vd[i] == 1);
-            HS[i] = hg->Vd[i] == 1;
-        }
-    }
-
-    int hs = 0;
-    for (int i = 0; i < hg->n; i++)
-    {
-        if (HS[i])
-            hs++;
-    }
-
-    int uc = 0;
-    for (int e = 0; e < hgc->m; e++)
-    {
-        int any = 0;
-        for (int i = 0; i < hgc->Ed[e]; i++)
-        {
-            int u = hgc->E[e][i];
-            if (HS[u])
-                any = 1;
-        }
-        if (!any)
-        {
-            uc++;
-        }
-    }
-
-    printf("%25s,%10d,%10d\n", argv[1] + name_offset(argv[1]), hs, hs + uc);
+    printf("%25s,%10lld\n", argv[1] + name_offset(argv[1]), offset - c->cost);
 
     if (!graph_csr_validate(g))
         printf("Error in graph\n");
 
-    free(HS);
+    mwis_reduction_free(rd);
     chils_free(c);
     free(FM);
     graph_csr_free(g);
+    graph_free(gr);
     hypergraph_free(hgc);
     hypergraph_free(hg);
 
