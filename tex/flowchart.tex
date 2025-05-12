@@ -1,0 +1,35 @@
+\tikzset{
+  startstop/.style = {rectangle, rounded corners, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=red!30},
+  process/.style = {rectangle, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=blue!20},
+  decision/.style = {diamond, aspect=2, minimum width=3.5cm, text centered, draw=black, fill=yellow!30},
+  io/.style = {trapezium, trapezium left angle=70, trapezium right angle=110, minimum width=3cm, text centered, draw=black, fill=green!20},
+  arrow/.style = {thick,->,>=stealth}
+}
+
+\tikzset{
+  line/.style = {draw, -latex'},
+  dashedline/.style = {draw, -latex', dashed},
+  thickline/.style = {draw, -latex', thick},
+  dottedline/.style = {draw, dotted, -latex'},
+}
+
+\begin{tikzpicture}
+  \node (start_hs) [startstop] {Input Hitting Set Instance};
+  \node (start_ds) [startstop, right of=start_hs, node distance=8cm] {Input Dominating Set Instance};
+  \node (hs_to_hg) [process, below of=start_hs, node distance=2cm] {Convert to Hypergraph Vertex Cover};
+  \node (hg_reduce) [process, below of=hs_to_hg, node distance=2cm] {Reduce for Hypergraph Vertex Cover};
+  \node (if_graph) [decision, below of=hg_reduce, node distance=2cm] {Hypergraph is Graph?};
+  \node (convert_to_mwis) [process, right of=if_graph, node distance=6cm] {Convert to MWIS};
+  \node (mwis_reduce) [process, below of=convert_to_mwis, node distance=2cm] {Reduce MWIS};
+  \node (solve_mwis) [process, below of=mwis_reduce, node distance=2cm] {Solve MWIS Exactly};
+  \node (build_solution) [process, below of=solve_mwis, node distance=2cm] {Build Solution};
+
+  \draw [arrow] (start_hs) -- (hs_to_hg);
+  \draw [arrow] (start_ds) -- (hs_to_hg);
+  \draw [arrow] (hs_to_hg) -- (hg_reduce);
+  \draw [arrow] (hg_reduce) -- (if_graph);
+  \draw [arrow] (if_graph) -- node[midway, above] {Yes} (convert_to_mwis);
+  \draw [arrow] (convert_to_mwis) -- (mwis_reduce);
+  \draw [arrow] (mwis_reduce) -- (solve_mwis);
+  \draw [arrow] (solve_mwis) -- (build_solution);
+\end{tikzpicture}

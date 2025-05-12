@@ -1,0 +1,46 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+
+\usepackage{amsmath}
+\usepackage{amsfonts}
+
+\usepackage{enumitem}
+
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning}
+
+\newcommand{\problem}[3]{
+    \vspace{1em}
+    \noindent\textbf{#1} \\
+    \textit{Input:} #2 \\
+    \textit{Goal:} #3
+}
+
+\title{PACE25}
+
+\begin{document}
+
+    \maketitle
+    
+    \section{Preliminaries}\label{sec:preliminaries}
+    \problem{Minimum Hitting Set}
+    {A family $\mathcal{F}$ of subsets of a universe $U$.}
+    {Find the smallest set $S \subseteq U$ such that $S$ intersects every set in $\mathcal{F}$ (i.e., $S \cap F \neq \emptyset$ for all $F \in \mathcal{F}$).}
+
+    \problem{Minimum Dominating Set}
+    {A graph $G=(V, E)$.}
+    {Find the smallest set $V' \subseteq V$ such that for each $v \in V$ we have $v \in V'$ or $\exists \{u, v\} \in E$ with $u \in V'$.}
+
+    \problem{Minimum Hypergraph Vertex Cover}
+    {A hypergraph $\mathcal{H} = (\mathcal{V}, \mathcal{E})$.}
+    {Find the smallest set $\mathcal{V}'$ such that $\forall e \in \mathcal{E} : e \cap \mathcal{V}' \neq \emptyset$.}
+
+    \problem{Maximum Weight Independent Set}
+    {A graph $G=(V, E)$ with vertex weights $\omega : V \to \mathbb{R}$.}
+    {Find the set $V' \subseteq V$ with maximum $\sum_{v \in V'} \omega(v)$ such that $\forall u \neq v \in V': \{u, v\} \notin E$.}
+
+    \section{Flowchart}\label{sec:flowchart}
+    \include{flowchart}
+
+
+\end{document}

@@ -6,3 +6,10 @@ EXACT
 HEURISTIC
 bin/libmwis_reductions.a
 include/mwis_reductions.h
+
+.idea
+
+tex/main.aux
+tex/main.log
+tex/main.pdf
+tex/flowchart.aux
