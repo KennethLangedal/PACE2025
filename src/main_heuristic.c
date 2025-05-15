@@ -2,6 +2,7 @@
 #include "graph_csr.h"
 #include "hs_reductions.h"
 #include "chils.h"
+#include "local_search.h"
 
 #include <time.h>
 #include <stdio.h>
@@ -48,7 +49,7 @@ int main(int argc, char **argv)
         nr += hs_reductions_degree_one_rule(hg);
         nr += hs_reductions_vertex_domination(hg);
         nr += hs_reductions_edge_domination(hg);
-        nr += hs_reductions_counting_rule(hg);
+        // nr += hs_reductions_counting_rule(hg);
         lc++;
     }
 
@@ -56,10 +57,11 @@ int main(int argc, char **argv)
         printf("Error in graph after reductions\n");
 
     long long offset;
-    graph *gr = hs_reductions_to_mwis(hg, (1 << 8), &offset);
+    graph *gr = hs_reductions_to_mwis(hg, (1 << 10), &offset);
 
     printf("%lld %lld\n", gr->n, gr->m);
-    void *rd = mwis_reduction_reduce_graph(gr);
+    void *rd = mwis_reduction_run_struction(gr, 30.0);
+    // void *rd = mwis_reduction_reduce_graph(gr);
     printf("%lld %lld\n", gr->n, gr->m);
 
     offset -= mwis_reduction_get_offset(rd);
@@ -70,22 +72,51 @@ int main(int argc, char **argv)
     if (!graph_csr_validate(g))
         printf("Error in csr graph\n");
 
-    chils *c = chils_init(g, 8, time(NULL));
-    c->step_time = 0.5;
-    chils_run(g, c, 60, 9999999, offset, 1);
+    local_search *ls = local_search_init(g, 0);
+    local_search_explore(g, ls, 120, 999999999ll, offset, 1);
+
+    // chils *c = chils_init(g, 16, time(NULL));
+    // c->step_time = 0.5;
+    // chils_run(g, c, 300, 9999999, offset, 1);
+
+    // int *I = mwis_reduction_lift_solution(chils_get_best_independent_set(c), rd);
+    int *I = mwis_reduction_lift_solution(ls->independent_set, rd);
+    mwis_reduction_restore_graph(gr, rd);
+
+    long long HS = 0;
+    for (node_id u = 0; u < hgc->n; u++)
+        if (!I[u])
+            HS++;
 
     double t1 = get_wtime();
 
-    printf("%25s,%10lld\n", argv[1] + name_offset(argv[1]), offset - c->cost);
+    printf("%25s,%10lld\n", argv[1] + name_offset(argv[1]), HS);
+
+    for (int e = 0; e < hgc->m; e++)
+    {
+        int hit = 0;
+        for (int i = 0; i < hgc->Ed[e]; i++)
+        {
+            int u = hgc->E[e][i];
+            if (!I[u])
+                hit = 1;
+        }
+        if (!hit)
+        {
+            printf("Error in solution\n");
+        }
+    }
 
     if (!graph_csr_validate(g))
         printf("Error in graph\n");
 
     mwis_reduction_free(rd);
-    chils_free(c);
+    // chils_free(c);
+    // local_search_free(ls);
     free(FM);
     graph_csr_free(g);
     graph_free(gr);
+    free(I);
     hypergraph_free(hgc);
     hypergraph_free(hg);
 
