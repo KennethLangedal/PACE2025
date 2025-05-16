@@ -31,4 +31,4 @@ bin/%.o : %.c
 
 .PHONY : clean
 clean :
-	rm -f EXACT $(DEP) $(DEP:.o=.d)
+	rm -f EXACT HEURISTIC $(DEP) $(DEP:.o=.d)

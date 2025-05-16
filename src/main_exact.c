@@ -35,9 +35,6 @@ int main(int argc, char **argv)
 
     hypergraph_sort(hg);
 
-    if (!hypergraph_validate(hg))
-        printf("Error in graph\n");
-
     int nr = 1, lc = 0;
     while (nr > 0)
     {
@@ -45,12 +42,29 @@ int main(int argc, char **argv)
         nr += hs_reductions_vertex_domination(hg);
         nr += hs_reductions_degree_one_rule(hg);
         nr += hs_reductions_edge_domination(hg);
-        nr += hs_reductions_counting_rule(hg);
+        // nr += hs_reductions_counting_rule(hg);
         lc++;
     }
 
     long long offset;
     graph *g = hs_reductions_to_mwis(hg, (1 << 8), &offset);
+
+    f = fopen("test.gr", "w");
+    fprintf(f, "%lld %lld %d\n", g->n, g->m, 10);
+    for (int i = 0; i < g->n; i++)
+    {
+        fprintf(f, "%lld", g->W[i]);
+        for (int j = 0; j < g->D[i]; j++)
+        {
+            fprintf(f, " %d", g->V[i][j] + 1);
+        }
+        fprintf(f, "\n");
+    }
+    fclose(f);
+
+    printf("%lld\n", offset);
+
+    return 0;
 
     printf("%lld %lld\n", g->n, g->m);
     void *rd = mwis_reduction_reduce_graph(g);
