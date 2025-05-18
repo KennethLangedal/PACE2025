@@ -44,9 +44,9 @@ chils *chils_init(graph_csr *g, int p, unsigned int seed)
     for (int i = 0; i < p; i++)
     {
         c->LS[i] = local_search_init(g, seed + i);
-        c->LS[i]->max_queue += 4 * p;
+        c->LS[i]->max_queue += 8 * p;
         c->LS_core[i] = local_search_init(g, seed + p + i);
-        c->LS_core[i]->max_queue += 4 * p;
+        c->LS_core[i]->max_queue += 8 * p;
     }
 
     for (int i = 0; i < g->n; i++)
@@ -161,9 +161,10 @@ void chils_run(graph_csr *g, chils *c, double tl, volatile sig_atomic_t *tle,
         chils_print(c, 0, offset, elapsed);
 
     int ci = 0;
-    while (ci++ < cl && elapsed < tl)
+    while (ci++ < cl && elapsed < tl && !(*tle))
     {
         /* Full graph LS */
+// #pragma omp parallel for
         for (int i = 0; i < c->p; i++)
         {
             double remaining_time = tl - (chils_get_wtime() - start);
@@ -175,6 +176,7 @@ void chils_run(graph_csr *g, chils *c, double tl, volatile sig_atomic_t *tle,
         }
 
         /* Mark the D-core */
+// #pragma omp parallel for
         for (int i = 0; i < g->n; i++)
         {
             int t = 0;
@@ -194,6 +196,7 @@ void chils_run(graph_csr *g, chils *c, double tl, volatile sig_atomic_t *tle,
         graph_csr_subgraph(g, c->d_core, c->A, c->RM, c->FM);
 
         /* D-core LS */
+// #pragma omp parallel for
         for (int i = 0; i < c->p; i++)
         {
             if (c->d_core->n == 0)
@@ -215,7 +218,7 @@ void chils_run(graph_csr *g, chils *c, double tl, volatile sig_atomic_t *tle,
             {
                 if (c->LS[i]->independent_set[c->RM[u]])
                 {
-                    local_search_add_vertex(c->d_core, c->LS_core[i], u);
+                    // local_search_add_vertex(c->d_core, c->LS_core[i], u);
                     ref += c->d_core->W[u];
                 }
             }

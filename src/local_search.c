@@ -425,8 +425,8 @@ void local_search_greedy(graph_csr *g, local_search *ls)
             else if (ls->independent_set[u] && g->V[u + 1] - g->V[u] < MAX_TWO_ONE_DEGREE)
                 local_search_two_one(g, ls, u);
 
-            if (ls->tightness[u] == 1 && g->V[g->n] < AAP_LIMIT)
-                local_search_aap(g, ls, u, 1);
+            // if (ls->tightness[u] == 1 && g->V[g->n] < AAP_LIMIT)
+            //     local_search_aap(g, ls, u, 1);
         }
 
         local_search_shuffle(ls->queue, ls->queue_count, &ls->seed);
@@ -448,13 +448,17 @@ void local_search_perturbe(graph_csr *g, local_search *ls)
 
     long long best = ls->cost;
 
-    if (ls->independent_set[u] || ls->tightness[u] == 1)
+    if (0) // if (ls->independent_set[u] || ls->tightness[u] == 1)
     {
         local_search_aap(g, ls, u, ls->tightness[u] == 1);
     }
     else
     {
-        local_search_add_vertex(g, ls, u);
+        if (!ls->independent_set[u])
+            local_search_add_vertex(g, ls, u);
+        else
+            local_search_remove_vertex(g, ls, u);
+
         local_search_lock_vertex(g, ls, u);
 
         for (int i = 0; i < 32 &&
