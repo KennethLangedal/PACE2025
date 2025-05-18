@@ -481,7 +481,8 @@ void local_search_perturbe(graph_csr *g, local_search *ls)
     }
 }
 
-void local_search_explore(graph_csr *g, local_search *ls, double tl, long long il, long long offset, int verbose)
+void local_search_explore(graph_csr *g, local_search *ls, double tl, volatile sig_atomic_t *tle,
+                          long long il, long long offset, int verbose)
 {
     long long best = ls->cost, c = 0;
 
@@ -519,7 +520,7 @@ void local_search_explore(graph_csr *g, local_search *ls, double tl, long long i
         if ((c++ & ((1 << 7) - 1)) == 0)
         {
             // c = 0;
-            if (ls_get_wtime() - start > tl)
+            if (ls_get_wtime() - start > tl || *tle)
                 break;
 
             if (verbose)

@@ -47,7 +47,7 @@ int main(int argc, char **argv)
     }
 
     long long offset;
-    graph *g = hs_reductions_to_mwis(hg, (1 << 8), &offset);
+    graph *g = hs_reductions_to_mwis(hg, (1 << 7), &offset);
 
     f = fopen("test.gr", "w");
     fprintf(f, "%lld %lld %d\n", g->n, g->m, 10);
@@ -67,7 +67,8 @@ int main(int argc, char **argv)
     return 0;
 
     printf("%lld %lld\n", g->n, g->m);
-    void *rd = mwis_reduction_reduce_graph(g);
+    void *rd = mwis_reduction_run_struction(g, 300);
+    // void *rd = mwis_reduction_reduce_graph(g);
     printf("%lld %lld\n", g->n, g->m);
 
     mwis_reduction_free(rd);

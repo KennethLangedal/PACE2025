@@ -44,7 +44,9 @@ chils *chils_init(graph_csr *g, int p, unsigned int seed)
     for (int i = 0; i < p; i++)
     {
         c->LS[i] = local_search_init(g, seed + i);
+        c->LS[i]->max_queue += 4 * p;
         c->LS_core[i] = local_search_init(g, seed + p + i);
+        c->LS_core[i]->max_queue += 4 * p;
     }
 
     for (int i = 0; i < g->n; i++)
@@ -122,7 +124,8 @@ void chils_update_best(chils *c)
     c->time = c->LS[best]->time;
 }
 
-void chils_run(graph_csr *g, chils *c, double tl, long long cl, long long offset, int verbose)
+void chils_run(graph_csr *g, chils *c, double tl, volatile sig_atomic_t *tle,
+               long long cl, long long offset, int verbose)
 {
     double start = chils_get_wtime();
     double end = chils_get_wtime();
@@ -168,7 +171,7 @@ void chils_run(graph_csr *g, chils *c, double tl, long long cl, long long offset
             if (remaining_time < duration)
                 duration = remaining_time;
             if (duration > 0.0)
-                local_search_explore(g, c->LS[i], duration, c->step_count, 0, 0);
+                local_search_explore(g, c->LS[i], duration, tle, c->step_count, 0, 0);
         }
 
         /* Mark the D-core */
@@ -209,10 +212,15 @@ void chils_run(graph_csr *g, chils *c, double tl, long long cl, long long offset
 
             long long ref = 0;
             for (int u = 0; u < c->d_core->n; u++)
+            {
                 if (c->LS[i]->independent_set[c->RM[u]])
+                {
+                    local_search_add_vertex(c->d_core, c->LS_core[i], u);
                     ref += c->d_core->W[u];
+                }
+            }
 
-            local_search_explore(c->d_core, c->LS_core[i], duration, c->step_count, 0, 0);
+            local_search_explore(c->d_core, c->LS_core[i], duration, tle, c->step_count, 0, 0);
 
             if (ref <= c->LS_core[i]->cost || (i != best && (i % 2) == 0))
                 for (int u = 0; u < c->d_core->n; u++)

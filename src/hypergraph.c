@@ -156,11 +156,14 @@ hypergraph *hypergraph_parse_hitting_set(char *data, size_t *p)
 
 hypergraph *hypergraph_parse(FILE *f)
 {
-    fseek(f, 0, SEEK_END);
-    size_t size = ftell(f);
-    fseek(f, 0, SEEK_SET);
+    // fseek(f, 0, SEEK_END);
+    // size_t size = ftell(f);
+    // fseek(f, 0, SEEK_SET);
 
-    char *data = mmap(0, size, PROT_READ, MAP_PRIVATE, fileno_unlocked(f), 0);
+    char *data = malloc(sizeof(char) * (1 << 28));
+    size_t n_red = fread(data, sizeof(char), (1 << 28), stdin);
+
+    // char *data = mmap(0, size, PROT_READ, MAP_PRIVATE, fileno_unlocked(f), 0);
     size_t p = 0;
     hypergraph *g = NULL;
 
@@ -182,7 +185,8 @@ hypergraph *hypergraph_parse(FILE *f)
         g = hypergraph_parse_hitting_set(data, &p);
     }
 
-    munmap(data, size);
+    // munmap(data, size);
+    free(data);
 
     return g;
 }

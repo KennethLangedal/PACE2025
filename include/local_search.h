@@ -2,6 +2,8 @@
 
 #include "graph_csr.h"
 
+#include <signal.h>
+
 typedef struct
 {
     // Solution
@@ -44,6 +46,7 @@ void local_search_greedy(graph_csr *g, local_search *ls);
 
 void local_search_perturbe(graph_csr *g, local_search *ls);
 
-void local_search_explore(graph_csr *g, local_search *ls, double tl, long long il, long long offset, int verbose);
+void local_search_explore(graph_csr *g, local_search *ls, double tl, volatile sig_atomic_t *tle,
+                          long long il, long long offset, int verbose);
 
 void local_search_unwind(graph_csr *g, local_search *ls, int t);

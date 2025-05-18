@@ -7,7 +7,16 @@
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
 #include <assert.h>
+#include <string.h>
+
+volatile sig_atomic_t tle = 0;
+
+void term(int signum)
+{
+    tle = 1;
+}
 
 double get_wtime()
 {
@@ -32,14 +41,21 @@ int main(int argc, char **argv)
 {
     double t0 = get_wtime();
 
-    FILE *f = fopen(argv[1], "r");
-    hypergraph *hg = hypergraph_parse(f);
-    fclose(f);
+    struct sigaction action;
+    memset(&action, 0, sizeof(struct sigaction));
+    action.sa_handler = term;
+    sigaction(SIGTERM, &action, NULL);
+
+    // FILE *f = fopen(argv[1], "r");
+    // hypergraph *hg = hypergraph_parse(f);
+    // fclose(f);
+
+    hypergraph *hg = hypergraph_parse(stdin);
 
     hypergraph_sort(hg);
 
     int nr = 1, lc = 0;
-    while (nr > 0 && lc < 5)
+    while (nr > 0 && lc < 10)
     {
         nr = 0;
         nr += hs_reductions_degree_one_rule(hg);
@@ -50,47 +66,54 @@ int main(int argc, char **argv)
     }
 
     long long offset;
-    graph *gr = hs_reductions_to_mwis(hg, (1 << 9), &offset);
+    graph *gr = hs_reductions_to_mwis(hg, (1 << 7), &offset);
 
     double t1 = get_wtime();
 
-    printf("%lld %lld\n", gr->n, gr->m);
-    void *rd = mwis_reduction_run_struction(gr, 30.0 - (t1 - t0));
-    // void *rd = mwis_reduction_reduce_graph(gr);
-    printf("%lld %lld\n", gr->n, gr->m);
-
-    return 0;
+    // printf("%lld\n", gr->nr);
+    void *rd = mwis_reduction_run_struction(gr, 100.0 - (t1 - t0));
+    // printf("%lld\n", gr->nr);
 
     offset -= mwis_reduction_get_offset(rd);
 
-    int *FM = malloc(sizeof(int) * gr->n);
-    graph_csr *g = graph_csr_construct(gr, FM);
+    int *I = NULL;
+    if (gr->nr == 0)
+    {
+        for (node_id i = 0; i < gr->n; i++)
+            I[i] = 0;
+        I = mwis_reduction_lift_solution(NULL, rd);
+    }
+    else
+    {
+        int *FM = malloc(sizeof(int) * gr->n);
+        graph_csr *g = graph_csr_construct(gr, FM);
+        double tr = 600.0 - (get_wtime() - t0);
 
-    if (!graph_csr_validate(g))
-        printf("Error in csr graph\n");
+        if (1 || gr->nr > 100000 && gr->m > 1000000)
+        {
+            // printf("%d\n", g->n);
+            local_search *ls = local_search_init(g, 0);
+            local_search_explore(g, ls, tr, &tle, 999999999ll, offset, 0);
 
-    local_search *ls = local_search_init(g, 0);
-    double tr = 300.0 - (get_wtime() - t0);
-    local_search_explore(g, ls, tr, 999999999ll, offset, 0);
+            I = mwis_reduction_lift_solution(ls->independent_set, rd);
+            local_search_free(ls);
+        }
+        else
+        {
+            printf("%d\n", g->n);
+            chils *c = chils_init(g, 4, 0);
+            c->step_time = 1.0;
+            chils_run(g, c, tr, &tle, 999999999, offset, 0);
 
-    // chils *c = chils_init(g, 8, 0);
-    // double tr = 300.0 - (get_wtime() - t0);
-    // c->step_time = 1.0;
-    // chils_run(g, c, tr, 9999999, offset, 1);
+            I = mwis_reduction_lift_solution(chils_get_best_independent_set(c), rd);
+            chils_free(c);
+        }
 
-    // int *I = mwis_reduction_lift_solution(chils_get_best_independent_set(c), rd);
-    int *I = mwis_reduction_lift_solution(ls->independent_set, rd);
-    // mwis_reduction_restore_graph(gr, rd);
+        free(FM);
+        graph_csr_free(g);
+    }
 
     long long HS = 0;
-    for (node_id u = 0; u < hg->n; u++)
-        if (!I[u])
-            HS++;
-
-    double t2 = get_wtime();
-
-    printf("%25s,%10lld,%10.2lf\n", argv[1] + name_offset(argv[1]), HS, t2 - t0);
-
     for (int e = 0; e < hg->m; e++)
     {
         if (hg->Ed[e] == 0)
@@ -104,18 +127,26 @@ int main(int argc, char **argv)
         }
         if (!hit)
         {
-            printf("Error in solution\n");
+            I[hg->E[e][0]] = 0;
         }
     }
+    for (int u = 0; u < hg->n; u++)
+    {
+        if (!I[u])
+            HS++;
+    }
+    printf("%lld\n", HS);
+    for (int u = 0; u < hg->n; u++)
+    {
+        if (!I[u])
+            printf("%d\n", u + 1);
+    }
 
-    if (!graph_csr_validate(g))
-        printf("Error in graph\n");
+    double t2 = get_wtime();
+
+    // printf("%25s,%10lld,%10.2lf\n", argv[1] + name_offset(argv[1]), HS, t2 - t0);
 
     mwis_reduction_free(rd);
-    // chils_free(c);
-    local_search_free(ls);
-    free(FM);
-    graph_csr_free(g);
     graph_free(gr);
     free(I);
     hypergraph_free(hg);

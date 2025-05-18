@@ -21,7 +21,8 @@ chils *chils_init(graph_csr *g, int p, unsigned int seed);
 
 void chils_free(chils *c);
 
-void chils_run(graph_csr *g, chils *c, double tl, long long cl, long long offset, int verbose);
+void chils_run(graph_csr *g, chils *c, double tl, volatile sig_atomic_t *tle,
+               long long cl, long long offset, int verbose);
 
 void chils_set_solution(graph_csr *g, chils *c, const int *I);
 
