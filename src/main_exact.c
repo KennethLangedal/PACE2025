@@ -1,6 +1,7 @@
 #include "hypergraph.h"
 #include "hs_reductions.h"
 #include "mwis_reductions.h"
+#include "maxsat.h"
 
 #include <time.h>
 #include <stdio.h>
@@ -29,10 +30,12 @@ int main(int argc, char **argv)
 {
     double t0 = get_wtime();
 
-    FILE *f = fopen(argv[1], "r");
-    hypergraph *hg = hypergraph_parse(f);
-    fclose(f);
+    // FILE *f = fopen(argv[1], "r");
+    // hypergraph *hg = hypergraph_parse(f);
+    // close(f);
 
+    hypergraph *hg = hypergraph_parse(stdin);
+    
     hypergraph_sort(hg);
 
     int nr = 1, lc = 0;
@@ -46,10 +49,15 @@ int main(int argc, char **argv)
         lc++;
     }
 
+    double t1 = get_wtime();
+
+    /* long long hs_sol = maxsat_solve_hitting_set(hg);
+    printf("%lld,%.2f\n", hs_sol, t1-t0); */
+
     long long offset;
     graph *g = hs_reductions_to_mwis(hg, (1 << 7), &offset);
 
-    f = fopen("test.gr", "w");
+    /* f = fopen("test.gr", "w");
     fprintf(f, "%lld %lld %d\n", g->n, g->m, 10);
     for (int i = 0; i < g->n; i++)
     {
@@ -64,17 +72,24 @@ int main(int argc, char **argv)
 
     printf("%lld\n", offset);
 
-    return 0;
+    return 0; */
 
-    printf("%lld %lld\n", g->n, g->m);
+    // printf("%lld %lld\n", g->n, g->m);
     void *rd = mwis_reduction_run_struction(g, 300);
     // void *rd = mwis_reduction_reduce_graph(g);
-    printf("%lld %lld\n", g->n, g->m);
+    // printf("%lld %lld\n", g->n, g->m);
+
+    offset -= mwis_reduction_get_offset(rd);
+
+    double t2 = get_wtime();
+
+    long long hs_sol = maxsat_solve_MWIS(g, offset);
+    printf("%lld,%.2f\n", hs_sol, t2-t0);
 
     mwis_reduction_free(rd);
     graph_free(g);
 
-    double t1 = get_wtime();
+    /* double t3 = get_wtime();
 
     int mde = 0;
     long long total_de = 0;
@@ -113,7 +128,7 @@ int main(int argc, char **argv)
            argv[1] + name_offset(argv[1]),
            hg->n, rv, mdv, (double)total_dv / (double)rv,
            hg->m, re, mde, (double)total_de / (double)re,
-           t1 - t0, lc);
+           t3 - t0, lc); */
 
     // long long ds_offset;
     // graph *g = reduction_hitting_set_to_mwis(hg, &ds_offset);

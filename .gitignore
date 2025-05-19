@@ -13,3 +13,12 @@ tex/main.aux
 tex/main.log
 tex/main.pdf
 tex/flowchart.aux
+
+results/
+include/ipamir.h
+bin/libcominisatps.a
+bin/libcadical.a
+bin/libmaxpre.a
+bin/libscip.a
+bin/libsoplex.a
+bin/libuwrmaxsat.a
