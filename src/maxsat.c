@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 long long maxsat_solve_hitting_set(hypergraph *hg) {
     if (!hg) return -1;
@@ -34,19 +35,17 @@ long long maxsat_solve_hitting_set(hypergraph *hg) {
     if (result == 30) {  // 30 means OPTIMUM_FOUND
         uint64_t obj = ipamir_val_obj(sv);
         hs_sol = (long long)obj;
+
+        printf("%lld\n", hs_sol);
         
-        /* for (int i = 0; i < hg->n; i++) {
+        for (int i = 0; i < hg->n; i++) {
             if (hg->Vd[i] == 0) continue;
 
             int32_t lit = (int32_t)(i + 1);
             int32_t val = ipamir_val_lit(sv, lit);
             if (val == lit)
-                printf("Literal %d: TRUE\n", lit);
-            else if (val == -lit)
-                printf("Literal %d: FALSE\n", lit);
-            else
-                printf("Literal %d: UNDEFINED/IRRELEVANT\n", lit);
-        }*/
+                printf("%d\n", lit);
+        }
     }
 
     ipamir_release(sv);
@@ -54,8 +53,8 @@ long long maxsat_solve_hitting_set(hypergraph *hg) {
     return hs_sol;
 }
 
-long long maxsat_solve_MWIS(graph *g, long long offset) {
-    if (!g) return -1;
+int* maxsat_solve_MWIS(graph *g) {
+    if (!g) return NULL;
 
     void *sv = ipamir_init();
 
@@ -80,37 +79,23 @@ long long maxsat_solve_MWIS(graph *g, long long offset) {
         }
     }
 
+    int *solution = (int *)malloc(sizeof(int) * g->n);
+    for (node_id i = 0; i < g->n; i++)
+        solution[i] = 0;
+
     int result = ipamir_solve(sv);
 
-    long long hs_sol = -1;
-
     if (result == 30) { // OPTIMUM_FOUND
-        uint64_t obj = ipamir_val_obj(sv);
-
-        /* printf("Total weight of active vertices: %llu\n", (unsigned long long)total_weight);
-        printf("Objective value from solver: %llu\n", (unsigned long long)obj);
-        printf("Computed result: %lld - (%llu - %llu) = %lld\n",
-               offset, (unsigned long long)total_weight, (unsigned long long)obj,
-               offset - (long long)(total_weight - obj)); */
-
-        hs_sol = offset - (long long)(total_weight - obj);
-
-        // printf("Hitting Set Solution: %lld\n", hs_sol);
-
-        /* for (node_id i = 0; i < gr->n; i++) {
-            if (gr->A[i] == 0) continue;
+        for (node_id i = 0; i < g->n; i++) {
+            if (g->A[i] == 0) continue;
 
             int32_t lit = (int32_t)(i + 1);
             int32_t val = ipamir_val_lit(sv, lit);
             if (val == lit)
-                printf("Literal %d: TRUE\n", lit);
-            else if (val == -lit)
-                printf("Literal %d: FALSE\n", lit);
-            else
-                printf("Literal %d: UNDEFINED/IRRELEVANT\n", lit);
-        } */
+                solution[i] = 1;
+        }
     }
 
     ipamir_release(sv);
-    return hs_sol;
+    return solution;
 }

@@ -51,11 +51,13 @@ int main(int argc, char **argv)
 
     double t1 = get_wtime();
 
-    /* long long hs_sol = maxsat_solve_hitting_set(hg);
-    printf("%lld,%.2f\n", hs_sol, t1-t0); */
+    // long long hs_sol = maxsat_solve_hitting_set(hg);
+    // printf("%lld,%.2f\n", hs_sol, t1-t0);
 
     long long offset;
     graph *g = hs_reductions_to_mwis(hg, (1 << 7), &offset);
+
+    // int* MWIS_sol = maxsat_solve_MWIS(g);
 
     /* f = fopen("test.gr", "w");
     fprintf(f, "%lld %lld %d\n", g->n, g->m, 10);
@@ -79,15 +81,30 @@ int main(int argc, char **argv)
     // void *rd = mwis_reduction_reduce_graph(g);
     // printf("%lld %lld\n", g->n, g->m);
 
-    offset -= mwis_reduction_get_offset(rd);
+    // offset -= mwis_reduction_get_offset(rd);
 
     double t2 = get_wtime();
 
-    long long hs_sol = maxsat_solve_MWIS(g, offset);
-    printf("%lld,%.2f\n", hs_sol, t2-t0);
+    int* MWIS_sol = maxsat_solve_MWIS(g);
 
+    long long HS = 0;
+    for (int u = 0; u < hg->n; u++)
+    {
+        if (!MWIS_sol[u])
+            HS++;
+    }
+    printf("%lld\n", HS);
+    for (int u = 0; u < hg->n; u++)
+    {
+        if (!MWIS_sol[u])
+            printf("%d\n", u + 1);
+    }
+    
+    // printf("%lld,%.2f\n", HS, t2-t0);
+
+    free(MWIS_sol);
     mwis_reduction_free(rd);
-    graph_free(g);
+    graph_free(g); 
 
     /* double t3 = get_wtime();
 
