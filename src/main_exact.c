@@ -35,7 +35,7 @@ int main(int argc, char **argv)
     // close(f);
 
     hypergraph *hg = hypergraph_parse(stdin);
-    
+
     hypergraph_sort(hg);
 
     int nr = 1, lc = 0;
@@ -55,7 +55,7 @@ int main(int argc, char **argv)
     // printf("%lld,%.2f\n", hs_sol, t1-t0);
 
     long long offset;
-    graph *g = hs_reductions_to_mwis(hg, (1 << 7), &offset);
+    graph *g = hs_reductions_to_mwis(hg, (1 << 10), &offset);
 
     // int* MWIS_sol = maxsat_solve_MWIS(g);
 
@@ -85,7 +85,9 @@ int main(int argc, char **argv)
 
     double t2 = get_wtime();
 
-    int* MWIS_sol = maxsat_solve_MWIS(g);
+    int *MWIS_sol = maxsat_solve_MWIS(g);
+
+    MWIS_sol = mwis_reduction_lift_solution(MWIS_sol, rd);
 
     long long HS = 0;
     for (int u = 0; u < hg->n; u++)
@@ -99,12 +101,12 @@ int main(int argc, char **argv)
         if (!MWIS_sol[u])
             printf("%d\n", u + 1);
     }
-    
+
     // printf("%lld,%.2f\n", HS, t2-t0);
 
     free(MWIS_sol);
     mwis_reduction_free(rd);
-    graph_free(g); 
+    graph_free(g);
 
     /* double t3 = get_wtime();
 

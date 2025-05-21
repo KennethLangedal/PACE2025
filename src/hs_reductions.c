@@ -171,7 +171,7 @@ graph *hs_reductions_to_mwis(hypergraph *hg, int max_degree, long long *offset)
     *offset = 0;
 
     long long vw = 1; // (1ll << 32ll);
-    long long ew = 1; // (1ll << 33ll);
+    long long ew = 2; // (1ll << 33ll);
 
     for (int i = 0; i < hg->n; i++)
     {
