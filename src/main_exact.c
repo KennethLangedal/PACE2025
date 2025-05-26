@@ -2,23 +2,22 @@
 #include "hs_reductions.h"
 #include "mwis_reductions.h"
 #include "maxsat.h"
+#include "connected_components.h"
 
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
-double get_wtime()
-{
+double get_wtime() {
     struct timespec tp;
     clock_gettime(CLOCK_REALTIME, &tp);
-    return (double)tp.tv_sec + ((double)tp.tv_nsec / 1e9);
+    return (double) tp.tv_sec + ((double) tp.tv_nsec / 1e9);
 }
 
-int name_offset(char *name)
-{
+int name_offset(char *name) {
     int offset = 0, i = 0;
-    while (name[i] != '\0')
-    {
+    while (name[i] != '\0') {
         if (name[i] == '/')
             offset = i + 1;
         i++;
@@ -26,21 +25,9 @@ int name_offset(char *name)
     return offset;
 }
 
-int main(int argc, char **argv)
-{
-    double t0 = get_wtime();
-
-    // FILE *f = fopen(argv[1], "r");
-    // hypergraph *hg = hypergraph_parse(f);
-    // close(f);
-
-    hypergraph *hg = hypergraph_parse(stdin);
-
-    hypergraph_sort(hg);
-
+long long solve_hg(hypergraph *hg) {
     int nr = 1, lc = 0;
-    while (nr > 0)
-    {
+    while (nr > 0) {
         nr = 0;
         nr += hs_reductions_vertex_domination(hg);
         nr += hs_reductions_degree_one_rule(hg);
@@ -55,7 +42,7 @@ int main(int argc, char **argv)
     // printf("%lld,%.2f\n", hs_sol, t1-t0);
 
     long long offset;
-    graph *g = hs_reductions_to_mwis(hg, (1 << 10), &offset);
+    graph     *g = hs_reductions_to_mwis(hg, (1 << 10), &offset);
 
     // int* MWIS_sol = maxsat_solve_MWIS(g);
 
@@ -90,16 +77,14 @@ int main(int argc, char **argv)
     MWIS_sol = mwis_reduction_lift_solution(MWIS_sol, rd);
 
     long long HS = 0;
-    for (int u = 0; u < hg->n; u++)
-    {
+    for (int  u  = 0; u < hg->n; u++) {
         if (!MWIS_sol[u])
             HS++;
     }
-    printf("%lld\n", HS);
-    for (int u = 0; u < hg->n; u++)
-    {
-        if (!MWIS_sol[u])
-            printf("%d\n", u + 1);
+    // printf("%lld\n", HS);
+    for (int  u  = 0; u < hg->n; u++) {
+        // if (!MWIS_sol[u])
+        // printf("%d\n", u + 1);
     }
 
     // printf("%lld,%.2f\n", HS, t2-t0);
@@ -107,6 +92,8 @@ int main(int argc, char **argv)
     free(MWIS_sol);
     mwis_reduction_free(rd);
     graph_free(g);
+
+    return HS;
 
     /* double t3 = get_wtime();
 
@@ -190,6 +177,59 @@ int main(int argc, char **argv)
     // fclose(f);
 
     // graph_free(g);
+
+}
+
+int main(int argc, char **argv) {
+    double t0 = get_wtime();
+
+    // FILE *f = fopen(argv[1], "r");
+    // hypergraph *hg = hypergraph_parse(f);
+    // close(f);
+
+    hypergraph *hg = hypergraph_parse(stdin);
+
+    hypergraph_sort(hg);
+
+    bool use_connected_comp = false;
+
+    if (!use_connected_comp) {
+        long long HS = 0;
+        HS += solve_hg(hg);
+        printf("%lld\n", HS);
+        hypergraph_free(hg);
+        return 0;
+    }
+
+    double t_components_start = get_wtime();
+
+    int               n_components = 0;
+    translation_table **vertex_tt  = NULL;
+    translation_table **edge_tt    = NULL;
+    hypergraph        **components = find_connected_components(hg, &n_components, &vertex_tt, &edge_tt);
+
+    for (int i = 0; i < n_components; i++) {
+        hypergraph_sort(components[i]);
+    }
+
+    double t_components_end = get_wtime();
+    // printf("Found %d components in %.5f seconds\n", n_components, t_components_end - t_components_start);
+
+    long long HS = 0;
+    for (int  i  = 0; i < n_components; i++) {
+        HS += solve_hg(components[i]);
+    }
+    printf("%lld\n", HS);
+
+    for (int i = 0; i < n_components; i++) {
+        hypergraph_free(components[i]);
+        translation_table_free(vertex_tt[i]);
+        translation_table_free(edge_tt[i]);
+    }
+    free(components);
+    free(vertex_tt);
+    free(edge_tt);
+
     hypergraph_free(hg);
 
     return 0;
