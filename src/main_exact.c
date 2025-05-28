@@ -51,40 +51,33 @@ int main(int argc, char **argv)
 
     double t1 = get_wtime();
 
-    // long long hs_sol = maxsat_solve_hitting_set(hg);
-    // printf("%lld,%.2f\n", hs_sol, t1-t0);
+    /* long long hs_sol = maxsat_solve_hitting_set(hg);
+    printf("%lld,%.2f\n", hs_sol, t1-t0); */
 
     long long offset;
     graph *g = hs_reductions_to_mwis(hg, (1 << 10), &offset);
 
     // int* MWIS_sol = maxsat_solve_MWIS(g);
 
-    /* f = fopen("test.gr", "w");
-    fprintf(f, "%lld %lld %d\n", g->n, g->m, 10);
-    for (int i = 0; i < g->n; i++)
-    {
-        fprintf(f, "%lld", g->W[i]);
-        for (int j = 0; j < g->D[i]; j++)
-        {
-            fprintf(f, " %d", g->V[i][j] + 1);
-        }
-        fprintf(f, "\n");
-    }
-    fclose(f);
-
-    printf("%lld\n", offset);
-
-    return 0; */
-
     // printf("%lld %lld\n", g->n, g->m);
     void *rd = mwis_reduction_run_struction(g, 300);
     // void *rd = mwis_reduction_reduce_graph(g);
     // printf("%lld %lld\n", g->n, g->m);
 
-    // offset -= mwis_reduction_get_offset(rd);
+    offset -= mwis_reduction_get_offset(rd);
 
     double t2 = get_wtime();
 
+    clique_set *cs = find_cliques(g, 500, g->n);
+    /* for (int i = 0; i < cs->num_cliques; i++) {
+        printf("Clique %d (size %d): ", i + 1, cs->sizes[i]);
+        for (int j = 0; j < cs->sizes[i]; j++) {
+            printf("%lld ", (long long)cs->cliques[i][j]);
+        }
+        printf("\n");
+    } */
+
+    // int *MWIS_sol = maxsat_solve_MWIS_with_cliques(g, cs);
     int *MWIS_sol = maxsat_solve_MWIS(g);
 
     MWIS_sol = mwis_reduction_lift_solution(MWIS_sol, rd);
@@ -95,16 +88,17 @@ int main(int argc, char **argv)
         if (!MWIS_sol[u])
             HS++;
     }
-    printf("%lld\n", HS);
+    /* printf("%lld\n", HS);
     for (int u = 0; u < hg->n; u++)
     {
         if (!MWIS_sol[u])
             printf("%d\n", u + 1);
-    }
+    } */
 
-    // printf("%lld,%.2f\n", HS, t2-t0);
+    printf("%lld,%.2f\n", HS, t2-t0);
 
     free(MWIS_sol);
+    free_clique_set(cs);
     mwis_reduction_free(rd);
     graph_free(g);
 
@@ -149,47 +143,6 @@ int main(int argc, char **argv)
            hg->m, re, mde, (double)total_de / (double)re,
            t3 - t0, lc); */
 
-    // long long ds_offset;
-    // graph *g = reduction_hitting_set_to_mwis(hg, &ds_offset);
-
-    // reducer *r = reducer_init(g, 3,
-    //                           degree_zero_reduction,
-    //                           degree_one_reduction,
-    //                           domination_reduction);
-
-    // reduction_log *l = reducer_reduce(r, g);
-
-    // int m = 0;
-    // for (int u = 0; u < g->n; u++)
-    // {
-    //     if (!g->A[u])
-    //         continue;
-    //     m += g->D[u];
-    // }
-
-    // printf("%20s %10d %10d\n", argv[1] + offset, g->r_n, m / 2);
-
-    // reducer_free_reduction_log(l);
-    // reducer_free(r);
-
-    // printf("%10s %9d %9d\n", argv[1] + offset, g->n, g->m / 2);
-
-    // printf("%lld\n", ds_offset);
-
-    // f = fopen("test.gr", "w");
-    // fprintf(f, "%d %d %d\n", g->n, g->m / 2, 10);
-    // for (int i = 0; i < g->n; i++)
-    // {
-    //     fprintf(f, "%lld", g->W[i]);
-    //     for (int j = 0; j < g->D[i]; j++)
-    //     {
-    //         fprintf(f, " %d", g->V[i][j] + 1);
-    //     }
-    //     fprintf(f, "\n");
-    // }
-    // fclose(f);
-
-    // graph_free(g);
     hypergraph_free(hg);
 
     return 0;
