@@ -60,6 +60,75 @@ int hs_reductions_degree_one_rule(hypergraph *g)
     return r;
 }
 
+// assumes domination is checked already (extended domination)
+int hs_reductions_degree_two_rule(hypergraph *g)
+{
+    int r = 0;
+    int *fast_set = malloc(sizeof(int) * g->n);
+    int set_count = 0;
+    for (int i = 0; i < g->n; i++)
+        fast_set[i] = -1;
+
+    for (int u = 0; u < g->n; u++)
+    {
+        if (g->Vd[u] != 2)
+            continue;
+
+        int e1 = g->V[u][0];
+        int e2 = g->V[u][1];
+
+        if (g->Ed[e1] > g->Ed[e2])
+        {
+            e1 = e2;
+            e2 = g->V[u][0];
+        }
+
+        for (int j = 0; j < g->Ed[e1]; j++)
+            fast_set[g->E[e1][j]] = set_count;
+
+        for (int j = 0; j < g->Ed[e2]; j++)
+            fast_set[g->E[e2][j]] = set_count;
+
+        // check edges incident to vertices in smaller edge e1
+        for (int j = 0; j < g->Ed[e1]; j++)
+        {
+            int v = g->E[e1][j];
+            if (v == u)
+                continue;
+
+            for (int k = 0; k < g->Vd[v]; k++)
+            {
+                // potential edge dominated by e1 \cup e2
+                int e = g->V[v][k];
+                if (e == e1 || e == e2)
+                    continue;
+
+                int next = 0;
+                for (int l = 0; l < g->Ed[e]; l++)
+                {
+                    // if there is a vertex not in e1 or in e1, there is no domination
+                    if (fast_set[g->E[e][l]] != set_count)
+                    {
+                        next = 1;
+                        break;
+                    }
+                }
+
+                if (next == 0)
+                {
+                    r++;
+                    hypergraph_remove_vertex(g, u);
+                    break;
+                }
+            }
+        }
+        set_count++;
+    }
+
+    free(fast_set);
+    return r;
+}
+
 int hs_reductions_vertex_domination(hypergraph *g)
 {
     int r = 0;

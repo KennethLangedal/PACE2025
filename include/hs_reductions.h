@@ -5,6 +5,8 @@
 
 int hs_reductions_degree_one_rule(hypergraph *g);
 
+int hs_reductions_degree_two_rule(hypergraph *g);
+
 int hs_reductions_vertex_domination(hypergraph *g);
 
 int hs_reductions_edge_domination(hypergraph *g);
