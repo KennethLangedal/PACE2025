@@ -194,16 +194,33 @@ void hs_reducer_reduce(hs_reducer *r, hypergraph *g)
             rule++;
             continue;
         }
+
         int next = 0;
-        if (apply_on_edges == 0)
+        if (r->Rule[rule].global)
         {
-            next = r->Queues[rule][--r->Queue_count[rule]];
-            r->In_queues[rule][next] = 0;
+            while (r->Queue_count[rule] > 0)
+            {
+                int v = r->Queues[rule][--r->Queue_count[rule]];
+                r->In_queues[rule][v] = 0;
+            }
+            while (r->Queue_count_E[rule] > 0)
+            {
+                int e = r->Queues_E[rule][--r->Queue_count_E[rule]];
+                r->In_queues_E[rule][e] = 0;
+            }
         }
         else
         {
-            next = r->Queues_E[rule][--r->Queue_count_E[rule]];
-            r->In_queues_E[rule][next] = 0;
+            if (apply_on_edges == 0)
+            {
+                next = r->Queues[rule][--r->Queue_count[rule]];
+                r->In_queues[rule][next] = 0;
+            }
+            else
+            {
+                next = r->Queues_E[rule][--r->Queue_count_E[rule]];
+                r->In_queues_E[rule][next] = 0;
+            }
         }
 
         int res = hs_reducer_apply_reduction(g, next, apply_on_edges, r->Rule[rule], r);

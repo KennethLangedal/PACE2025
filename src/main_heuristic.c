@@ -66,7 +66,7 @@ int main(int argc, char **argv)
         // extended_domination,
         // counting_rule
     );
-    // hs_reducer_reduce(r,hg);
+    hs_reducer_reduce(r,hg);
     // printf("%d, %d, %f\n", hg->nr, hg->mr, get_wtime()-t0);
 
     // int nr = 1, lc = 0;
