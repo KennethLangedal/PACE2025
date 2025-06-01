@@ -168,6 +168,7 @@ int main(int argc, char **argv)
     graph_free(gr);
     free(I);
     hypergraph_free(hg);
+    hs_reducer_free(r);
 
     return 0;
 }

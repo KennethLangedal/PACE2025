@@ -72,18 +72,29 @@ hs_reducer *hs_reducer_init(hypergraph *g, int n_rules, ...)
 void hs_reducer_free(hs_reducer *r)
 {
     free(r->Queue_count);
+    free(r->Queue_count_E);
 
     for (int i = 0; i < r->n_rules; i++)
     {
         free(r->Queues[i]);
         free(r->In_queues[i]);
+        free(r->Queues_E[i]);
+        free(r->In_queues_E[i]);
     }
 
     free(r->Queues);
     free(r->In_queues);
+    free(r->Queues_E);
+    free(r->In_queues_E);
 
     free(r->Rule);
     free(r->fast_set);
+
+    free(r->c->E);
+    free(r->c->V);
+    free(r->c->in_E);
+    free(r->c->in_V);
+    free(r->c);
 
     free(r);
 }
@@ -129,13 +140,19 @@ void hs_reducer_queue_up_neighbors_v(hypergraph *g, int u, hs_change_list *c)
     for (int i = 0; i < g->Vd[u]; i++)
     {
         int e = g->V[u][i];
-        c->E[c->m++] = e;
-        c->in_E[e] = 1;
+        if (!c->in_E[e])
+        {
+            c->E[c->m++] = e;
+            c->in_E[e] = 1;
+        }
         for (int j = 0; j < g->Ed[e]; j++)
         {
             int v = g->E[e][j];
-            c->V[c->n++] = v;
-            c->in_V[v] = 1;
+            if (!c->in_V[v])
+            {
+                c->V[c->n++] = v;
+                c->in_V[v] = 1;
+            }
         }
     }
 }
@@ -147,13 +164,19 @@ void hs_reducer_queue_up_neighbors_e(hypergraph *g, int e, hs_change_list *c)
     for (int j = 0; j < g->Ed[e]; j++)
     {
         int v = g->E[e][j];
-        c->V[c->n++] = v;
-        c->in_V[v] = 1;
+        if (!c->in_V[v])
+        {
+            c->V[c->n++] = v;
+            c->in_V[v] = 1;
+        }
         for (int i = 0; i < g->Vd[v]; i++)
         {
             int f = g->V[v][i];
-            c->E[c->m++] = f;
-            c->in_E[f] = 1;
+            if (!c->in_E[f])
+            {
+                c->E[c->m++] = f;
+                c->in_E[f] = 1;
+            }
         }
     }
 }
