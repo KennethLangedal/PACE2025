@@ -19,6 +19,8 @@
 #include <string.h>
 #include <limits.h>
 
+#define VERBOSE 0
+
 volatile sig_atomic_t tle = 0;
 
 void term(int signum)
@@ -79,6 +81,9 @@ int main(int argc, char **argv)
 
     void *rd = mwis_reduction_run_struction(gr, 150.0 - (t1 - t0));
 
+    if (VERBOSE)
+        printf("%lld %lld\n", gr->nr, gr->m);
+
     offset -= mwis_reduction_get_offset(rd);
 
     int *I = NULL;
@@ -95,7 +100,7 @@ int main(int argc, char **argv)
         {
             double tr = 60.0;
             local_search *ls = local_search_init(g, 0);
-            local_search_explore(g, ls, tr, &tle, LLONG_MAX, offset, 0);
+            local_search_explore(g, ls, tr, &tle, LLONG_MAX, offset, VERBOSE);
 
             I = mwis_reduction_lift_solution(ls->independent_set, rd);
             local_search_free(ls);
@@ -105,7 +110,7 @@ int main(int argc, char **argv)
             double tr = 240.0 - (get_wtime() - t0);
             chils *c = chils_init(g, 8, 0);
             c->step_time = 2.0;
-            chils_run(g, c, tr, &tle, LLONG_MAX, offset, 0);
+            chils_run(g, c, tr, &tle, LLONG_MAX, offset, VERBOSE);
 
             I = mwis_reduction_lift_solution(chils_get_best_independent_set(c), rd);
             chils_free(c);
@@ -148,14 +153,17 @@ int main(int argc, char **argv)
         }
     }
 
-    local_search_hs_explore(gh, ls_hs, 600.0, &tle, LLONG_MAX, offset, 0);
+    local_search_hs_explore(gh, ls_hs, 600.0, &tle, LLONG_MAX, offset, VERBOSE);
 
     printf("%lld\n", ls_hs->cost + offset);
 
-    for (int u = 0; u < hg->n; u++)
+    if (!VERBOSE)
     {
-        if (hg->Vd[u] == 1 || ls_hs->hitting_set[FM_HS[u]])
-            printf("%d\n", u + 1);
+        for (int u = 0; u < hg->n; u++)
+        {
+            if (hg->Vd[u] == 1 || ls_hs->hitting_set[FM_HS[u]])
+                printf("%d\n", u + 1);
+        }
     }
 
     free(FM_HS);
