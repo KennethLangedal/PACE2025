@@ -24,6 +24,7 @@ graph_csr *graph_csr_construct(graph *rg, int *FM)
     }
 
     g->n = n;
+    g->m = m;
     g->V = malloc(sizeof(int) * (n + 1));
     g->E = malloc(sizeof(int) * m);
     g->W = malloc(sizeof(long long) * n);
@@ -51,144 +52,77 @@ graph_csr *graph_csr_construct(graph *rg, int *FM)
     return g;
 }
 
-// graph_csr *graph_csr_construct(hypergraph *hg, int *FM, int max_edge, long long *offset)
-// {
-//     graph_csr *g = malloc(sizeof(graph_csr));
+graph_csr *graph_csr_construct_hypergraph(hypergraph *rg, int *FM)
+{
+    graph_csr *g = malloc(sizeof(graph_csr));
 
-//     *offset = 0;
-//     int n = 0, m = 0;
-//     for (int u = 0; u < hg->n; u++)
-//     {
-//         if (hg->Vd[u] <= 1)
-//         {
-//             if (hg->Vd[u] == 1 && hg->Ed[hg->V[u][0]] == 1)
-//                 *offset += 1;
-//             FM[u] = -1;
-//             continue;
-//         }
-//         FM[u] = n++;
-//     }
-//     *offset += n;
-//     for (int e = 0; e < hg->m; e++)
-//     {
-//         int d = hg->Ed[e];
-//         if (d <= 1 || d > max_edge)
-//             continue;
+    int *FM_E = malloc(sizeof(int) * rg->m);
 
-//         if (d == 2)
-//             m += 1;
-//         else
-//         {
-//             n += d;
-//             m += ((d * (d - 1)) / 2) + d;
+    int n = 0, m = 0, c = 0;
+    for (int u = 0; u < rg->n; u++)
+    {
+        if (rg->Vd[u] <= 1)
+        {
+            FM[u] = -1;
+            continue;
+        }
+        FM[u] = n++;
+        c += rg->Vd[u];
+    }
+    for (int e = 0; e < rg->m; e++)
+    {
+        if (rg->Ed[e] <= 1)
+            continue;
 
-//             *offset += 10000;
-//         }
-//     }
+        FM_E[e] = m++;
+        c += rg->Ed[e];
+    }
 
-//     int *V = malloc(sizeof(int) * (n + 1));
-//     int *D = malloc(sizeof(int) * n);
-//     int *E = malloc(sizeof(int) * m * 2);
-//     long long *W = malloc(sizeof(long long) * n);
+    g->n = n;
+    g->m = m;
+    g->V = malloc(sizeof(int) * (g->n + g->m + 1));
+    g->E = malloc(sizeof(int) * c);
+    g->W = NULL;
 
-//     int c = 0;
-//     for (int u = 0; u < hg->n; u++)
-//     {
-//         if (hg->Vd[u] <= 1)
-//             continue;
-//         D[FM[u]] = 0;
-//         c++;
-//     }
-//     for (int e = 0; e < hg->m; e++)
-//     {
-//         int d = hg->Ed[e];
-//         if (d <= 1 || d > max_edge)
-//             continue;
+    c = 0;
+    for (int u = 0; u < rg->n; u++)
+    {
+        if (rg->Vd[u] <= 1)
+            continue;
 
-//         if (d == 2)
-//         {
-//             int v1 = hg->E[e][0], v2 = hg->E[e][1];
-//             D[FM[v1]]++;
-//             D[FM[v2]]++;
-//         }
-//         else
-//         {
-//             for (int i = 0; i < d; i++)
-//             {
-//                 D[FM[hg->E[e][i]]]++;
-//                 D[c + i] = d;
-//             }
-//             c += d;
-//         }
-//     }
+        int _u = FM[u];
+        g->V[_u] = c;
 
-//     V[0] = 0;
-//     for (int i = 1; i <= n; i++)
-//         V[i] = V[i - 1] + D[i - 1];
-//     for (int i = 0; i < n; i++)
-//         D[i] = 0;
+        for (int i = 0; i < rg->Vd[u]; i++)
+        {
+            int e = rg->V[u][i];
+            int _e = FM_E[e];
 
-//     c = 0;
-//     for (int u = 0; u < hg->n; u++)
-//     {
-//         if (hg->Vd[u] <= 1)
-//             continue;
-//         W[FM[u]] = 1;
-//         c++;
-//     }
-//     for (int e = 0; e < hg->m; e++)
-//     {
-//         int d = hg->Ed[e];
-//         if (d <= 1 || d > max_edge)
-//             continue;
+            g->E[c++] = _e;
+        }
+    }
+    for (int e = 0; e < rg->m; e++)
+    {
+        if (rg->Ed[e] <= 1)
+            continue;
 
-//         if (d == 2)
-//         {
-//             int v1 = FM[hg->E[e][0]], v2 = FM[hg->E[e][1]];
-//             E[V[v1] + D[v1]++] = v2;
-//             E[V[v2] + D[v2]++] = v1;
-//         }
-//         else
-//         {
-//             for (int i = 0; i < d; i++)
-//             {
-//                 int u = FM[hg->E[e][i]];
-//                 W[c + i] = 10000;
-//                 E[V[u] + D[u]++] = c + i;
-//                 E[V[c + i] + D[c + i]++] = u;
+        int _e = FM_E[e] + g->n;
+        g->V[_e] = c;
 
-//                 for (int j = i + 1; j < d; j++)
-//                 {
-//                     E[V[c + i] + D[c + i]++] = c + j;
-//                     E[V[c + j] + D[c + j]++] = c + i;
-//                 }
-//             }
-//             c += d;
-//         }
-//     }
+        for (int i = 0; i < rg->Ed[e]; i++)
+        {
+            int u = rg->E[e][i];
+            int _u = FM[u];
 
-//     for (int u = 0; u < n; u++)
-//         qsort(E + V[u], V[u + 1] - V[u], sizeof(int), graph_csr_compare);
+            g->E[c++] = _u;
+        }
+    }
+    g->V[g->n + g->m] = c;
 
-//     m = 0;
-//     for (int u = 0; u < n; u++)
-//     {
-//         int s = V[u];
-//         V[u] = m;
-//         for (int i = s; i < V[u + 1]; i++)
-//         {
-//             if (i == s || E[i] > E[i - 1])
-//                 E[m++] = E[i];
-//         }
-//     }
-//     V[n] = m;
-//     E = realloc(E, sizeof(int) * m);
+    free(FM_E);
 
-//     free(D);
-
-//     *g = (graph_csr){.n = n, .V = V, .E = E, .W = W};
-//     return g;
-// }
+    return g;
+}
 
 void graph_csr_free(graph_csr *g)
 {
@@ -223,7 +157,7 @@ int graph_csr_validate(graph_csr *g)
         }
     }
 
-    if (m != g->V[g->n])
+    if (m != g->m)
         return 0;
 
     return 1;

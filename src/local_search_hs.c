@@ -1,0 +1,424 @@
+#include "local_search_hs.h"
+
+#include <time.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <limits.h>
+#include <assert.h>
+
+#define MAX_GUESS 128
+#define DEFAULT_QUEUE_SIZE 256
+
+double ls_hs_get_wtime()
+{
+    struct timespec tp;
+    clock_gettime(CLOCK_REALTIME, &tp);
+    return (double)tp.tv_sec + ((double)tp.tv_nsec / 1e9);
+}
+
+local_search_hs *local_search_hs_init(graph_csr *g, unsigned int seed)
+{
+    local_search_hs *ls = malloc(sizeof(local_search_hs));
+
+    ls->hitting_set = malloc(sizeof(int) * g->n);
+
+    ls->queue = malloc(sizeof(int) * g->n);
+    ls->in_queue = malloc(sizeof(int) * g->n);
+    ls->prev_queue = malloc(sizeof(int) * g->n);
+    ls->in_prev_queue = malloc(sizeof(int) * g->n);
+
+    ls->max_queue = DEFAULT_QUEUE_SIZE;
+    ls->score = malloc(sizeof(int) * g->n);
+    ls->cover_count = malloc(sizeof(int) * g->m);
+    ls->one_tight = malloc(sizeof(int) * g->m);
+    ls->T = malloc(sizeof(int) * g->n);
+
+    ls->log_alloc = g->n;
+    ls->log = malloc(sizeof(int) * ls->log_alloc);
+    ls->log_enabled = 0;
+
+    ls->seed = seed;
+
+    local_search_hs_reset(g, ls);
+
+    return ls;
+}
+
+void local_search_hs_free(local_search_hs *ls)
+{
+    free(ls->hitting_set);
+
+    free(ls->queue);
+    free(ls->in_queue);
+    free(ls->prev_queue);
+    free(ls->in_prev_queue);
+
+    free(ls->score);
+    free(ls->cover_count);
+    free(ls->one_tight);
+    free(ls->T);
+
+    free(ls->log);
+}
+
+void local_search_hs_reset(graph_csr *g, local_search_hs *ls)
+{
+    ls->cost = g->n;
+    ls->time = 0.0;
+    ls->time_ref = ls_hs_get_wtime();
+
+    ls->queue_count = g->n;
+
+    ls->log_count = 0;
+    ls->log_enabled = 0;
+
+    for (int u = 0; u < g->n; u++)
+    {
+        ls->hitting_set[u] = 1;
+
+        ls->score[u] = 0;
+
+        ls->queue[u] = u;
+        ls->in_queue[u] = 1;
+        ls->prev_queue[u] = 0;
+        ls->in_prev_queue[u] = 0;
+    }
+    for (int e = 0; e < g->m; e++)
+    {
+        ls->cover_count[e] = g->V[g->n + e + 1] - g->V[g->n + e];
+        ls->one_tight[e] = g->E[g->V[g->n + e]];
+
+        if (ls->cover_count[e] == 1)
+            ls->score[ls->one_tight[e]]++;
+    }
+}
+
+static inline void local_search_hs_shuffle(int *list, int n, unsigned int *seed)
+{
+    for (int i = 0; i < n - 1; i++)
+    {
+        int j = i + (rand_r(seed) % (n - i));
+        int t = list[j];
+        list[j] = list[i];
+        list[i] = t;
+    }
+}
+
+void local_search_hs_add_vertex(graph_csr *g, local_search_hs *ls, int u)
+{
+    assert(!ls->hitting_set[u]);
+
+    if (ls->log_enabled)
+    {
+        if (ls->log_count >= ls->log_alloc)
+        {
+            ls->log_alloc *= 2;
+            ls->log = realloc(ls->log, sizeof(int) * ls->log_alloc);
+        }
+        ls->log[ls->log_count++] = u;
+    }
+
+    ls->hitting_set[u] = 1;
+    ls->cost++;
+
+    if (!ls->in_queue[u])
+    {
+        ls->in_queue[u] = 1;
+        ls->queue[ls->queue_count++] = u;
+    }
+
+    for (int i = g->V[u]; i < g->V[u + 1]; i++)
+    {
+        int e = g->E[i];
+        ls->cover_count[e]++;
+
+        if (ls->cover_count[e] > 2)
+            continue;
+
+        for (int j = g->V[g->n + e]; j < g->V[g->n + e + 1]; j++)
+        {
+            int v = g->E[j];
+
+            if (!ls->in_queue[v])
+            {
+                ls->in_queue[v] = 1;
+                ls->queue[ls->queue_count++] = v;
+            }
+        }
+
+        int v = ls->one_tight[e];
+        ls->score[v]--;
+    }
+}
+
+void local_search_hs_remove_vertex(graph_csr *g, local_search_hs *ls, int u)
+{
+    assert(ls->hitting_set[u]);
+
+    for (int i = g->V[u]; i < g->V[u + 1]; i++)
+    {
+        int e = g->E[i];
+        if (ls->cover_count[e] > 1)
+            continue;
+
+        int d = g->V[g->n + e + 1] - g->V[g->n + e];
+        int v = g->E[g->V[g->n + e] + (rand_r(&ls->seed) % d)];
+        while (v == u)
+            v = g->E[g->V[g->n + e] + (rand_r(&ls->seed) % d)];
+
+        local_search_hs_add_vertex(g, ls, v);
+    }
+
+    if (ls->log_enabled)
+    {
+        if (ls->log_count >= ls->log_alloc)
+        {
+            ls->log_alloc *= 2;
+            ls->log = realloc(ls->log, sizeof(int) * ls->log_alloc);
+        }
+        ls->log[ls->log_count++] = u;
+    }
+
+    ls->hitting_set[u] = 0;
+    ls->cost--;
+
+    for (int i = g->V[u]; i < g->V[u + 1]; i++)
+    {
+        int e = g->E[i];
+        ls->cover_count[e]--;
+
+        if (ls->cover_count[e] > 1)
+            continue;
+
+        for (int j = g->V[g->n + e]; j < g->V[g->n + e + 1]; j++)
+        {
+            int v = g->E[j];
+
+            if (!ls->in_queue[v])
+            {
+                ls->in_queue[v] = 1;
+                ls->queue[ls->queue_count++] = v;
+            }
+
+            if (!ls->hitting_set[v])
+                continue;
+
+            ls->one_tight[e] = v;
+            ls->score[v]++;
+        }
+    }
+}
+
+void ls_hs_swap(int **a, int **b)
+{
+    int *t = *a;
+    *a = *b;
+    *b = t;
+}
+
+void local_search_hs_greedy(graph_csr *g, local_search_hs *ls)
+{
+    local_search_hs_shuffle(ls->queue, ls->queue_count, &ls->seed);
+
+    int n = ls->queue_count;
+    ls->queue_count = 0;
+    while (n > 0)
+    {
+        ls_hs_swap(&ls->queue, &ls->prev_queue);
+        ls_hs_swap(&ls->in_queue, &ls->in_prev_queue);
+
+        for (int i = 0; i < n; i++)
+        {
+            int u = ls->prev_queue[i];
+            ls->in_prev_queue[u] = 0;
+
+            if (ls->hitting_set[u] && ls->score[u] == 0)
+                local_search_hs_remove_vertex(g, ls, u);
+        }
+
+        local_search_hs_shuffle(ls->queue, ls->queue_count, &ls->seed);
+
+        n = ls->queue_count;
+        ls->queue_count = 0;
+    }
+}
+
+void local_search_hs_perturbe(graph_csr *g, local_search_hs *ls)
+{
+    int it = 0;
+    int to_add = 1 + (rand_r(&ls->seed) % 4);
+    while (it++ < to_add && ls->queue_count < ls->max_queue)
+    {
+        int u;
+        if (ls->queue_count == 0)
+            u = rand_r(&ls->seed) % g->n;
+        else
+            u = ls->queue[rand_r(&ls->seed) % ls->queue_count];
+        // int _t = 0;
+        // while (ls->hitting_set[u] && _t++ < MAX_GUESS)
+        //     u = rand_r(&ls->seed) % g->n;
+
+        if (ls->hitting_set[u])
+            local_search_hs_remove_vertex(g, ls, u);
+        else
+            local_search_hs_add_vertex(g, ls, u);
+    }
+}
+
+void local_search_hs_explore(graph_csr *g, local_search_hs *ls, double tl, volatile sig_atomic_t *tle,
+                             long long il, int offset, int verbose)
+{
+    int best = ls->cost;
+    long long c = 0;
+
+    double start = ls_hs_get_wtime();
+
+    if (verbose)
+    {
+        if (il < LLONG_MAX)
+            printf("Running baseline local search for %.2lf seconds or %lld iterations\n", tl, il);
+        else
+            printf("Running baseline local search for %.2lf seconds\n", tl);
+        printf("%11s %12s %8s %8s\n", "It.", "HS", "Ts", "Te");
+        printf("\r%10lld: %12d %8.2lf %8.2lf", c, offset + ls->cost, ls->time, ls_hs_get_wtime() - start);
+        fflush(stdout);
+    }
+
+    ls->log_enabled = 0;
+    local_search_hs_greedy(g, ls);
+    c++;
+
+    if (ls->cost < best)
+    {
+        best = ls->cost;
+        ls->time = ls_hs_get_wtime() - ls->time_ref;
+    }
+
+    while (c < il)
+    {
+        if ((c++ & ((1 << 7) - 1)) == 0)
+        {
+            // c = 0;
+            double elapsed = ls_hs_get_wtime() - start;
+            if (elapsed > tl || *tle)
+                break;
+
+            if (verbose)
+            {
+                printf("\r%10lld: %12d %8.2lf %8.2lf", c, offset + ls->cost, ls->time, elapsed);
+                fflush(stdout);
+            }
+        }
+
+        ls->log_count = 0;
+        ls->log_enabled = 1;
+
+        local_search_hs_perturbe(g, ls);
+        local_search_hs_greedy(g, ls);
+
+        if (ls->cost < best)
+        {
+            best = ls->cost;
+            ls->time = ls_hs_get_wtime() - ls->time_ref;
+        }
+        if (ls->cost > best)
+        {
+            local_search_hs_unwind(g, ls, 0);
+        }
+    }
+    if (verbose)
+        printf("\n");
+}
+
+void local_search_hs_unwind(graph_csr *g, local_search_hs *ls, int log_t)
+{
+    ls->log_enabled = 0;
+    while (ls->log_count > log_t)
+    {
+        ls->log_count--;
+        int u = ls->log[ls->log_count];
+
+        if (ls->hitting_set[u])
+            local_search_hs_remove_vertex(g, ls, u);
+        else
+            local_search_hs_add_vertex(g, ls, u);
+    }
+}
+
+void local_search_hs_one_two_swap(graph_csr *g, local_search_hs *ls, int u)
+{
+    assert(!ls->hitting_set[u]);
+
+    int n = 0;
+    for (int i = g->V[u]; i < g->V[u + 1]; i++)
+    {
+        int e = g->E[i];
+        ls->cover_count[e]++;
+        if (ls->cover_count[e] > 2)
+            continue;
+
+        int v = ls->one_tight[e];
+        ls->score[v]--;
+        if (ls->score[v] == 0)
+            ls->T[n++] = v;
+    }
+
+    // Found all remove candidates
+    local_search_hs_shuffle(ls->T, n, &ls->seed);
+    if (n > 100)
+        n = 100;
+
+    // Try every pair of vertiecs
+    int found = 0, w1, w2;
+    for (int i = 0; i < n && !found; i++)
+    {
+        int v1 = ls->T[i];
+        for (int j = i + 1; j < n && !found; j++)
+        {
+            int v2 = ls->T[j];
+
+            int i1 = g->V[v1], i2 = g->V[v2];
+            int valid_pair = 1;
+            while (i1 < g->V[v1 + 1] && i2 < g->V[v2 + 1] && valid_pair)
+            {
+                if (g->E[i1] < g->E[i2])
+                    i1++;
+                else if (g->E[i1] > g->E[i2])
+                    i2++;
+                else
+                {
+                    if (ls->cover_count[g->E[i1]] == 2)
+                        valid_pair = 0;
+
+                    i1++;
+                    i2++;
+                }
+            }
+
+            if (valid_pair)
+            {
+                found = 1;
+                w1 = v1;
+                w2 = v2;
+            }
+        }
+    }
+
+    for (int i = g->V[u]; i < g->V[u + 1]; i++)
+    {
+        int e = g->E[i];
+        ls->cover_count[e]--;
+        if (ls->cover_count[e] > 1)
+            continue;
+
+        int v = ls->one_tight[e];
+        ls->score[v]++;
+    }
+
+    if (found)
+    {
+        local_search_hs_add_vertex(g, ls, u);
+        local_search_hs_remove_vertex(g, ls, w1);
+        local_search_hs_remove_vertex(g, ls, w2);
+    }
+}

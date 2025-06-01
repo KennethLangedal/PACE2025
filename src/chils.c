@@ -44,9 +44,9 @@ chils *chils_init(graph_csr *g, int p, unsigned int seed)
     for (int i = 0; i < p; i++)
     {
         c->LS[i] = local_search_init(g, seed + i);
-        c->LS[i]->max_queue += 8 * p;
+        c->LS[i]->max_queue += 4 * p;
         c->LS_core[i] = local_search_init(g, seed + p + i);
-        c->LS_core[i]->max_queue += 8 * p;
+        c->LS_core[i]->max_queue += 4 * p;
     }
 
     for (int i = 0; i < g->n; i++)

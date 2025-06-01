@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+
 int hs_reductions_degree_one_reduce_graph(hypergraph *g, int ue, int apply_on_edges, hs_change_list *c, int *fast_set, int fs_count)
 {
     if (apply_on_edges)
