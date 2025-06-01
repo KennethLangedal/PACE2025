@@ -9,14 +9,15 @@ UWRMAXSAT_LIBS = -luwrmaxsat -lcadical -lcominisatps -lmaxpre -lz -lgmp -pthread
 OBJ_EXACT = main_exact.o hypergraph.o hs_reductions.o maxsat.o connected_components.o
 OBJ_EXACT := $(addprefix bin/, $(OBJ_EXACT))
 
-OBJ_HEURISTIC = main_heuristic.o hypergraph.o graph_csr.o hs_reductions.o local_search.o chils.o  connected_components.o
+OBJ_HEURISTIC = main_heuristic.o hypergraph.o graph_csr.o hs_reduction_to_mwis.o local_search.o chils.o  connected_components.o \
+hs_reducer.o degree_one.o domination.o  extended_domination.o counting_rule.o
 OBJ_HEURISTIC := $(addprefix bin/, $(OBJ_HEURISTIC))
 
 DEP = $(OBJ_EXACT) $(OBJ_HEURISTIC)
 DEP := $(sort $(DEP))
 
-vpath %.c src
-vpath %.h include
+vpath %.c src src/hs_reductions
+vpath %.h include include/hs_reductions
 
 all : EXACT HEURISTIC
 

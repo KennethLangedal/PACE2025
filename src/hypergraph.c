@@ -57,6 +57,8 @@ hypergraph *hypergraph_init(int n, int m)
     hypergraph *g = malloc(sizeof(hypergraph));
     g->n = n;
     g->m = m;
+    g->nr = n;
+    g->mr = m;
 
     g->Vd = malloc(sizeof(int) * n);
     g->Va = malloc(sizeof(int) * n);
@@ -324,6 +326,7 @@ void hypergraph_remove_vertex(hypergraph *g, int u)
         g->Ed[e]--;
     }
 
+    g->nr--;
     g->Vd[u] = 0;
 }
 
@@ -338,7 +341,7 @@ void hypergraph_remove_edge(hypergraph *g, int e)
         memmove(g->V[v] + p, g->V[v] + p + 1, sizeof(int) * (g->Vd[v] - p - 1));
         g->Vd[v]--;
     }
-
+    g->mr--;
     g->Ed[e] = 0;
 }
 

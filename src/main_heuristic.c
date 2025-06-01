@@ -1,8 +1,13 @@
 #include "hypergraph.h"
 #include "graph_csr.h"
-#include "hs_reductions.h"
+#include "hs_reduction_to_mwis.h"
 #include "chils.h"
 #include "local_search.h"
+#include "hs_reductions/degree_one.h"
+#include "hs_reductions/domination.h"
+#include "hs_reductions/extended_domination.h"
+#include "hs_reductions/counting_rule.h"
+#include "hs_reducer.h"
 
 #include <time.h>
 #include <stdio.h>
@@ -18,7 +23,7 @@ void term(int signum)
     tle = 1;
 }
 
-double get_wtime()
+static inline double get_wtime()
 {
     struct timespec tp;
     clock_gettime(CLOCK_REALTIME, &tp);
@@ -53,26 +58,39 @@ int main(int argc, char **argv)
     hypergraph *hg = hypergraph_parse(stdin);
 
     hypergraph_sort(hg);
+    printf("%d, %d\n", hg->n, hg->m);
 
-    int nr = 1, lc = 0;
-    while (nr > 0 && lc < 10)
-    {
-        nr = 0;
-        nr += hs_reductions_degree_one_rule(hg);
-        nr += hs_reductions_vertex_domination(hg);
-        nr += hs_reductions_edge_domination(hg);
-        // nr += hs_reductions_counting_rule(hg);
-        lc++;
-    }
+    hs_reducer *r = hs_reducer_init(hg, 2,
+        hs_degree_one,
+        domination
+        // extended_domination,
+        // counting_rule
+    );
+    // hs_reducer_reduce(r,hg);
+    // printf("%d, %d, %f\n", hg->nr, hg->mr, get_wtime()-t0);
+
+    // int nr = 1, lc = 0;
+    // while (nr > 0 && lc <50)
+    // {
+    //     nr = 0;
+    //     nr += hs_reductions_degree_one_rule(hg);
+    //     nr += hs_reductions_vertex_domination(hg);
+    //     nr += hs_reductions_edge_domination(hg);
+    //     nr += hs_reductions_degree_two_rule(hg);
+    //     // nr += hs_reductions_counting_rule(hg);
+    //     lc++;
+    // }
+
+    printf("%d, %d, %f\n", hg->nr, hg->mr, get_wtime()-t0);
 
     long long offset;
     graph *gr = hs_reductions_to_mwis(hg, (1 << 7), &offset);
 
     double t1 = get_wtime();
 
-    // printf("%lld\n", gr->nr);
-    void *rd = mwis_reduction_run_struction(gr, 100.0 - (t1 - t0));
-    // printf("%lld\n", gr->nr);
+    printf("%lld\n", gr->nr);
+    void *rd = mwis_reduction_run_struction(gr, 11.0 - (t1 - t0));
+    printf("%lld\n", gr->nr);
 
     offset -= mwis_reduction_get_offset(rd);
 
@@ -87,9 +105,9 @@ int main(int argc, char **argv)
     {
         int *FM = malloc(sizeof(int) * gr->n);
         graph_csr *g = graph_csr_construct(gr, FM);
-        double tr = 600.0 - (get_wtime() - t0);
+        double tr = 50.0 - (get_wtime() - t0);
 
-        if (1 || gr->nr > 100000 && gr->m > 1000000)
+        if (0 || gr->nr > 100000 && gr->m > 1000000)
         {
             // printf("%d\n", g->n);
             local_search *ls = local_search_init(g, 0);
@@ -100,10 +118,10 @@ int main(int argc, char **argv)
         }
         else
         {
-            printf("%d\n", g->n);
-            chils *c = chils_init(g, 4, 0);
-            c->step_time = 1.0;
-            chils_run(g, c, tr, &tle, 999999999, offset, 0);
+            // printf("%d\n", g->n);
+            chils *c = chils_init(g, 8, 0);
+            c->step_time = 0.5;
+            chils_run(g, c, tr, &tle, 999999999, offset, 1);
 
             I = mwis_reduction_lift_solution(chils_get_best_independent_set(c), rd);
             chils_free(c);
@@ -135,12 +153,12 @@ int main(int argc, char **argv)
         if (!I[u])
             HS++;
     }
-    printf("%lld\n", HS);
-    for (int u = 0; u < hg->n; u++)
-    {
-        if (!I[u])
-            printf("%d\n", u + 1);
-    }
+    // printf("%lld\n", HS);
+    // for (int u = 0; u < hg->n; u++)
+    // {
+    //     if (!I[u])
+    //         printf("%d\n", u + 1);
+    // }
 
     double t2 = get_wtime();
 
