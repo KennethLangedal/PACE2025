@@ -13,6 +13,8 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+double t_total = 0.0;
+
 double get_wtime() {
     struct timespec tp;
     clock_gettime(CLOCK_REALTIME, &tp);
@@ -29,22 +31,95 @@ int name_offset(char *name) {
     return offset;
 }
 
-long long solve_hg(hypergraph *hg) {
+long long solve_hg(hypergraph *hg, bool is_one_component, int **sol) {
+    if (is_one_component) {
+        // The hypergraph is one component so solve it
 
-    hs_reductions_degree_one_rule(hg);
-    hs_reductions_vertex_domination(hg);
-    hs_reductions_edge_domination(hg);
-    hs_reductions_degree_one_rule(hg);
-    hs_reductions_vertex_domination(hg);
-    hs_reductions_edge_domination(hg);
+        hs_reductions_degree_one_rule(hg);
+        hs_reductions_vertex_domination(hg);
+        hs_reductions_edge_domination(hg);
+        hs_reductions_degree_one_rule(hg);
+        hs_reductions_vertex_domination(hg);
+        hs_reductions_edge_domination(hg);
 
-    hs_reducer *r = hs_reducer_init(hg, 2,
-                                    hs_degree_one,
-                                    domination);
-    hs_reducer_reduce(r, hg);
-    hs_reducer_free(r);
+        hs_reducer *r = hs_reducer_init(hg, 2,
+                                        hs_degree_one,
+                                        domination);
+        hs_reducer_reduce(r, hg);
+        hs_reducer_free(r);
 
-    long long HS = maxsat_solve_hitting_set(hg);
+        if(hg->n == 1 && hg->m == 1){
+            *sol = (int *) malloc(1 * sizeof(int));
+            (*sol)[0] = 0;
+            return 1;
+        }
+        if(hg->n == 1 && hg->m == 0){
+            *sol = NULL;
+            return 0;
+        }
+
+        long long HS = 0;
+        if(are_multiple_components(hg)){
+            HS = solve_hg(hg, false, sol);
+        } else{
+            double t0 = get_wtime();
+            HS = maxsat_solve_hitting_set(hg, sol);
+            double t1 = get_wtime();
+            t_total += t1 - t0;
+            // if(hg->n > 10) {
+            //     printf("solving a hg with %d vertices and %d edges in %f sec (total: %f)\n", hg->n, hg->m, t1 - t0, t_total);
+            // }
+        }
+        return HS;
+    } else {
+        // The hypergraph could be made out of multiple components, separate
+        // them and solve each one separately
+
+        int               n_components   = 0;
+        translation_table **vertex_tt    = NULL;
+        translation_table **edge_tt      = NULL;
+        int               **comp_sol     = NULL;
+        int               *comp_sol_size = NULL;
+        hypergraph        **components   = find_connected_components(hg, &n_components, &vertex_tt, &edge_tt);
+
+        // printf("splitting hg with %d vertices into %d components\n", hg->n, n_components);
+
+        for (int i = 0; i < n_components; i++) {
+            hypergraph_sort(components[i]);
+        }
+
+        comp_sol      = (int **) malloc(n_components * sizeof(int *));
+        comp_sol_size = (int *) malloc(n_components * sizeof(int));
+
+        long long HS = 0;
+        for (int  i  = 0; i < n_components; i++) {
+            comp_sol_size[i] = solve_hg(components[i], true, &comp_sol[i]);
+            HS += comp_sol_size[i];
+        }
+
+        int sol_size = 0;
+        *sol = (int *) malloc(HS * sizeof(int));
+
+        for (int i = 0; i < n_components; i++) {
+            for (int j = 0; j < comp_sol_size[i]; ++j) {
+                (*sol)[sol_size++] = get_old(vertex_tt[i], comp_sol[i][j]);
+            }
+        }
+
+        for (int i = 0; i < n_components; i++) {
+            hypergraph_free(components[i]);
+            translation_table_free(vertex_tt[i]);
+            translation_table_free(edge_tt[i]);
+            free(comp_sol[i]);
+        }
+        free(components);
+        free(vertex_tt);
+        free(edge_tt);
+        free(comp_sol);
+        free(comp_sol_size);
+
+        return HS;
+    }
 
     // printf("%lld,%.2f\n", HS, t1-t0);
 
@@ -90,8 +165,6 @@ long long solve_hg(hypergraph *hg) {
     // free_clique_set(cs);
     mwis_reduction_free(rd);
     graph_free(g); */
-
-    return HS;
 
     /* double t3 = get_wtime();
 
@@ -182,52 +255,23 @@ int main(int argc, char **argv) {
 
     // FILE *f = fopen(argv[1], "r");
     // hypergraph *hg = hypergraph_parse(f);
-    // close(f);
+    // fclose(f);
 
     hypergraph *hg = hypergraph_parse(stdin);
 
     hypergraph_sort(hg);
 
-    bool use_connected_comp = false;
+    long long HS   = 0;
+    int       *sol = NULL;
 
-    if (!use_connected_comp) {
-        long long HS = 0;
-        HS += solve_hg(hg);
-        // printf("%lld\n", HS);
-        hypergraph_free(hg);
-        return 0;
-    }
+    HS = solve_hg(hg, false, &sol);
 
-    double t_components_start = get_wtime();
-
-    int               n_components = 0;
-    translation_table **vertex_tt  = NULL;
-    translation_table **edge_tt    = NULL;
-    hypergraph        **components = find_connected_components(hg, &n_components, &vertex_tt, &edge_tt);
-
-    for (int i = 0; i < n_components; i++) {
-        hypergraph_sort(components[i]);
-    }
-
-    double t_components_end = get_wtime();
-    // printf("Found %d components in %.5f seconds\n", n_components, t_components_end - t_components_start);
-
-    long long HS = 0;
-    for (int  i  = 0; i < n_components; i++) {
-        HS += solve_hg(components[i]);
-    }
     printf("%lld\n", HS);
-
-    for (int i = 0; i < n_components; i++) {
-        hypergraph_free(components[i]);
-        translation_table_free(vertex_tt[i]);
-        translation_table_free(edge_tt[i]);
+    for (int i = 0; i < HS; ++i) {
+        printf("%d\n", 1 + sol[i]);
     }
-    free(components);
-    free(vertex_tt);
-    free(edge_tt);
 
     hypergraph_free(hg);
-
+    free(sol);
     return 0;
 }
