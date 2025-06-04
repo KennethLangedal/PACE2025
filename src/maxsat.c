@@ -117,7 +117,7 @@ void free_clique_set(clique_set *cs) {
     free(cs);
 }
 
-long long maxsat_solve_hitting_set(hypergraph *hg) {
+long long maxsat_solve_hitting_set(hypergraph *hg, int **res) {
     if (!hg) return -1;
 
     void *sv = ipamir_init();
@@ -147,7 +147,10 @@ long long maxsat_solve_hitting_set(hypergraph *hg) {
         uint64_t obj = ipamir_val_obj(sv);
         hs_sol = (long long)obj;
 
-        printf("%lld\n", hs_sol);
+        int res_size = 0;
+        *res = (int *) malloc(hs_sol * sizeof(int));
+
+        // printf("%lld\n", hs_sol);
         
         for (int i = 0; i < hg->n; i++) {
             if (hg->Vd[i] == 0) continue;
@@ -155,7 +158,8 @@ long long maxsat_solve_hitting_set(hypergraph *hg) {
             int32_t lit = (int32_t)(i + 1);
             int32_t val = ipamir_val_lit(sv, lit);
             if (val == lit)
-                printf("%d\n", lit);
+                (*res)[res_size++] = lit - 1 ;
+                // printf("%d\n", lit);
         }
     }
 
