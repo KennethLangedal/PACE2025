@@ -147,7 +147,7 @@ long long maxsat_solve_hitting_set(hypergraph *hg) {
         uint64_t obj = ipamir_val_obj(sv);
         hs_sol = (long long)obj;
 
-        /* printf("%lld\n", hs_sol);
+        printf("%lld\n", hs_sol);
         
         for (int i = 0; i < hg->n; i++) {
             if (hg->Vd[i] == 0) continue;
@@ -156,7 +156,7 @@ long long maxsat_solve_hitting_set(hypergraph *hg) {
             int32_t val = ipamir_val_lit(sv, lit);
             if (val == lit)
                 printf("%d\n", lit);
-        } */
+        }
     }
 
     ipamir_release(sv);

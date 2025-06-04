@@ -1,8 +1,12 @@
 #include "hypergraph.h"
-#include "hs_reductions.h"
-#include "mwis_reductions.h"
 #include "maxsat.h"
 #include "connected_components.h"
+#include "hs_reductions/degree_one.h"
+#include "hs_reductions/domination.h"
+#include "hs_reductions/extended_domination.h"
+#include "hs_reductions/counting_rule.h"
+#include "hs_reducer.h"
+#include "hs_reductions.h"
 
 #include <time.h>
 #include <stdio.h>
@@ -26,30 +30,35 @@ int name_offset(char *name) {
 }
 
 long long solve_hg(hypergraph *hg) {
-    int nr = 1, lc = 0;
-    while (nr > 0) {
-        nr = 0;
-        nr += hs_reductions_vertex_domination(hg);
-        nr += hs_reductions_degree_one_rule(hg);
-        nr += hs_reductions_edge_domination(hg);
-        // nr += hs_reductions_counting_rule(hg);
-        lc++;
-    }
 
-    /* long long hs_sol = maxsat_solve_hitting_set(hg);
-    printf("%lld,%.2f\n", hs_sol, t1-t0); */
+    hs_reductions_degree_one_rule(hg);
+    hs_reductions_vertex_domination(hg);
+    hs_reductions_edge_domination(hg);
+    hs_reductions_degree_one_rule(hg);
+    hs_reductions_vertex_domination(hg);
+    hs_reductions_edge_domination(hg);
 
-    long long offset;
-    graph *g = hs_reductions_to_mwis(hg, (1 << 10), &offset);
+    hs_reducer *r = hs_reducer_init(hg, 2,
+                                    hs_degree_one,
+                                    domination);
+    hs_reducer_reduce(r, hg);
+    hs_reducer_free(r);
+
+    long long HS = maxsat_solve_hitting_set(hg);
+
+    // printf("%lld,%.2f\n", HS, t1-t0);
+
+    /* long long offset;
+    graph *g = hs_reductions_to_mwis(hg, (1 << 10), &offset); */
 
     // int* MWIS_sol = maxsat_solve_MWIS(g);
 
     // printf("%lld %lld\n", g->n, g->m);
-    void *rd = mwis_reduction_run_struction(g, 300);
+    /* void *rd = mwis_reduction_run_struction(g, 300); */
     // void *rd = mwis_reduction_reduce_graph(g);
     // printf("%lld %lld\n", g->n, g->m);
 
-    offset -= mwis_reduction_get_offset(rd);
+    /* offset -= mwis_reduction_get_offset(rd); */
 
     /* clique_set *cs = find_cliques(g, 500, g->n);
     for (int i = 0; i < cs->num_cliques; i++) {
@@ -61,7 +70,7 @@ long long solve_hg(hypergraph *hg) {
     } */
 
     // int *MWIS_sol = maxsat_solve_MWIS_with_cliques(g, cs);
-    int *MWIS_sol = maxsat_solve_MWIS(g);
+    /* int *MWIS_sol = maxsat_solve_MWIS(g);
 
     MWIS_sol = mwis_reduction_lift_solution(MWIS_sol, rd);
 
@@ -69,7 +78,7 @@ long long solve_hg(hypergraph *hg) {
     for (int u = 0; u < hg->n; u++) {
         if (!MWIS_sol[u])
             HS++;
-    }
+    } */
     /* printf("%lld\n", HS);
     for (int u = 0; u < hg->n; u++)
     {
@@ -77,10 +86,10 @@ long long solve_hg(hypergraph *hg) {
             printf("%d\n", u + 1);
     } */
 
-    free(MWIS_sol);
+    /* free(MWIS_sol);
     // free_clique_set(cs);
     mwis_reduction_free(rd);
-    graph_free(g);
+    graph_free(g); */
 
     return HS;
 
@@ -184,7 +193,7 @@ int main(int argc, char **argv) {
     if (!use_connected_comp) {
         long long HS = 0;
         HS += solve_hg(hg);
-        printf("%lld\n", HS);
+        // printf("%lld\n", HS);
         hypergraph_free(hg);
         return 0;
     }
