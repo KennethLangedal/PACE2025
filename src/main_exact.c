@@ -31,8 +31,78 @@ int name_offset(char *name) {
     return offset;
 }
 
-long long solve_hg(hypergraph *hg, bool is_one_component, int **sol) {
-    if (is_one_component) {
+#define max(a, b) ((a) > (b) ? (a) : (b))
+
+long long mwis_solve_hg(hypergraph *hg, int **sol, int reduce_option)
+{
+    // reduce_option: 0 - None, 1 - Struction, 2 - Reduce Graph
+    long long offset;
+    graph *g = hs_reductions_to_mwis(hg, (1 << 30), &offset);
+
+    void *rd = NULL;
+    if (reduce_option == 1)
+    {
+        rd = mwis_reduction_run_struction(g, 300);
+    }
+    else if (reduce_option == 2)
+    {
+        rd = mwis_reduction_reduce_graph(g, 60);
+    }
+
+    int *MWIS_sol = maxsat_solve_MWIS(g);
+
+    if (reduce_option != 0)
+    {
+        MWIS_sol = mwis_reduction_lift_solution(MWIS_sol, rd);
+        mwis_reduction_free(rd);
+    }
+
+    long long HS = 0;
+    for (int u = 0; u < hg->n; u++)
+    {
+        if (!MWIS_sol[u])
+            HS++;
+    }
+
+    int res_size = 0;
+    *sol = (int *)malloc(HS * sizeof(int));
+
+    for (int u = 0; u < hg->n; u++)
+    {
+        if (!MWIS_sol[u])
+            (*sol)[res_size++] = u;
+    }
+
+    free(MWIS_sol);
+    graph_free(g);
+
+    return HS;
+}
+
+int get_max_e_deg(hypergraph *hg)
+{
+    int max_e_deg = 0;
+    for (int e = 0; e < hg->m; ++e)
+    {
+        max_e_deg = max(max_e_deg, hg->Ed[e]);
+    }
+    return max_e_deg;
+}
+
+int get_max_v_deg(hypergraph *hg)
+{
+    int max_v_deg = 0;
+    for (int v = 0; v < hg->n; ++v)
+    {
+        max_v_deg = max(max_v_deg, hg->Vd[v]);
+    }
+    return max_v_deg;
+}
+
+long long solve_hg(hypergraph *hg, bool is_one_component, int **sol)
+{
+    if (is_one_component)
+    {
         // The hypergraph is one component so solve it
 
         hs_reductions_degree_one_rule(hg);
@@ -48,43 +118,74 @@ long long solve_hg(hypergraph *hg, bool is_one_component, int **sol) {
         hs_reducer_reduce(r, hg);
         hs_reducer_free(r);
 
-        if(hg->n == 1 && hg->m == 1){
-            *sol = (int *) malloc(1 * sizeof(int));
+        if (hg->n == 1 && hg->m == 1)
+        {
+            *sol = (int *)malloc(1 * sizeof(int));
             (*sol)[0] = 0;
             return 1;
         }
-        if(hg->n == 1 && hg->m == 0){
+        if (hg->n == 1 && hg->m == 0)
+        {
             *sol = NULL;
             return 0;
         }
 
         long long HS = 0;
-        if(are_multiple_components(hg)){
+        if (are_multiple_components(hg))
+        {
             HS = solve_hg(hg, false, sol);
-        } else{
-            double t0 = get_wtime();
-            HS = maxsat_solve_hitting_set(hg, sol);
-            double t1 = get_wtime();
-            t_total += t1 - t0;
-            // if(hg->n > 10) {
-            //     printf("solving a hg with %d vertices and %d edges in %f sec (total: %f)\n", hg->n, hg->m, t1 - t0, t_total);
-            // }
+        }
+        else
+        {
+            if (get_max_e_deg(hg) <= 2 && false)
+            {
+                double t0 = get_wtime();
+                HS = mwis_solve_hg(hg, sol, 0);
+                double t1 = get_wtime();
+                if (hg->n > 100)
+                {
+                    int max_v_deg = get_max_v_deg(hg);
+                    int max_e_deg = get_max_e_deg(hg);
+                    printf("mwis solving a hg with %d vertices (max deg=%d) and %d edges (max deg=%d) in %f sec\n", hg->n, max_v_deg, hg->m, max_e_deg, t1 - t0);
+                }
+            }
+            else
+            {
+
+                double t0 = get_wtime();
+                HS = maxsat_solve_hitting_set(hg, sol);
+                double t1 = get_wtime();
+                t_total += t1 - t0;
+                if (hg->n > 100)
+                {
+                    int max_v_deg = get_max_v_deg(hg);
+                    int max_e_deg = get_max_e_deg(hg);
+                    printf("maxsat solving a hg with %d vertices (max deg=%d) and %d edges (max deg=%d) in %f sec (total: %f)\n", hg->n, max_v_deg, hg->m, max_e_deg, t1 - t0, t_total);
+                }
+            }
         }
         return HS;
-    } else {
+    }
+    else
+    {
         // The hypergraph could be made out of multiple components, separate
         // them and solve each one separately
 
-        int               n_components   = 0;
-        translation_table **vertex_tt    = NULL;
-        translation_table **edge_tt      = NULL;
-        int               **comp_sol     = NULL;
-        int               *comp_sol_size = NULL;
-        hypergraph        **components   = find_connected_components(hg, &n_components, &vertex_tt, &edge_tt);
+        double t0 = get_wtime();
 
-        // printf("splitting hg with %d vertices into %d components\n", hg->n, n_components);
+        int n_components = 0;
+        translation_table **vertex_tt = NULL;
+        translation_table **edge_tt = NULL;
+        int **comp_sol = NULL;
+        int *comp_sol_size = NULL;
+        hypergraph **components = find_connected_components(hg, &n_components, &vertex_tt, &edge_tt);
 
-        for (int i = 0; i < n_components; i++) {
+        double t1 = get_wtime();
+
+        // printf("splitting hg with %d vertices into %d components in %f sec\n", hg->n, n_components, t1 - t0);
+
+        for (int i = 0; i < n_components; i++)
+        {
             hypergraph_sort(components[i]);
         }
 
