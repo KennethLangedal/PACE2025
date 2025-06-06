@@ -354,6 +354,7 @@ void hypergraph_include_vertex(hypergraph *g, int u)
     while (g->Vd[u] > 0)
         hypergraph_remove_edge(g, g->V[u][0]);
 
+    g->nr--;
     g->Ed[e] = 1;
     g->E[e][0] = u;
     g->Vd[u] = 1;

@@ -15,9 +15,13 @@ hs_reducer *hs_reducer_init(hypergraph *g, int n_rules, ...)
 
     r->Rule = malloc(sizeof(hs_reduction) * r->n_rules);
 
-    r->Queue_count   = malloc(sizeof(int) * (r->n_rules));
+    r->Queue_count = malloc(sizeof(int) * (r->n_rules));
+    r->Queue_front = malloc(sizeof(int) * (r->n_rules));
+    r->Queue_back = malloc(sizeof(int) * (r->n_rules));
     r->Queue_count_E = malloc(sizeof(int) * (r->n_rules));
-    r->Queues   = malloc(sizeof(int *) * (r->n_rules));
+    r->Queue_front_E = malloc(sizeof(int) * (r->n_rules));
+    r->Queue_back_E = malloc(sizeof(int) * (r->n_rules));
+    r->Queues = malloc(sizeof(int *) * (r->n_rules));
     r->Queues_E = malloc(sizeof(int *) * (r->n_rules));
     r->In_queues = malloc(sizeof(int *) * (r->n_rules));
     r->In_queues_E = malloc(sizeof(int *) * (r->n_rules));
@@ -28,7 +32,11 @@ hs_reducer *hs_reducer_init(hypergraph *g, int n_rules, ...)
     for (int i = 0; i < r->n_rules; i++)
     {
         r->Queue_count[i] = g->n;
+        r->Queue_front[i] = 0;
+        r->Queue_back[i] = 0;
         r->Queue_count_E[i] = g->m;
+        r->Queue_front_E[i] = 0;
+        r->Queue_back_E[i] = 0;
         r->Queues[i] = malloc(sizeof(int) * g->n);
         r->Queues_E[i] = malloc(sizeof(int) * g->m);
         r->In_queues[i] = malloc(sizeof(int) * g->n);
@@ -72,7 +80,11 @@ hs_reducer *hs_reducer_init(hypergraph *g, int n_rules, ...)
 void hs_reducer_free(hs_reducer *r)
 {
     free(r->Queue_count);
+    free(r->Queue_front);
+    free(r->Queue_back);
     free(r->Queue_count_E);
+    free(r->Queue_front_E);
+    free(r->Queue_back_E);
 
     for (int i = 0; i < r->n_rules; i++)
     {
@@ -110,7 +122,9 @@ void hs_reducer_queue_changed(hypergraph *g, hs_reducer *r)
         {
             if (!r->In_queues[j][v])
             {
-                r->Queues[j][r->Queue_count[j]++] = v;
+                r->Queues[j][r->Queue_back[j]] = v;
+                r->Queue_count[j]++;
+                r->Queue_back[j] = (r->Queue_back[j] + 1) % g->n;
                 r->In_queues[j][v] = 1;
             }
         }
@@ -125,7 +139,9 @@ void hs_reducer_queue_changed(hypergraph *g, hs_reducer *r)
         {
             if (!r->In_queues_E[j][e])
             {
-                r->Queues_E[j][r->Queue_count_E[j]++] = e;
+                r->Queues_E[j][r->Queue_back_E[j]] = e;
+                r->Queue_count_E[j]++;
+                r->Queue_back_E[j] = (r->Queue_back_E[j] + 1) % g->m;
                 r->In_queues_E[j][e] = 1;
             }
         }
@@ -197,6 +213,15 @@ int hs_reducer_apply_reduction(hypergraph *g, int u, int apply_on_edges, hs_redu
     return 1;
 }
 
+static inline int dequeue(int *Q, int *F, int *C, int *In, int n)
+{
+    int e = Q[*F];
+    *F = ((*F) + 1) % n;
+    (*C)--;
+    In[e] = 0;
+    return e;
+}
+
 // void hs_reducer_reduce(hs_reducer *r, hypergraph *g, double tl)
 void hs_reducer_reduce(hs_reducer *r, hypergraph *g)
 {
@@ -223,26 +248,22 @@ void hs_reducer_reduce(hs_reducer *r, hypergraph *g)
         {
             while (r->Queue_count[rule] > 0)
             {
-                int v = r->Queues[rule][--r->Queue_count[rule]];
-                r->In_queues[rule][v] = 0;
+                dequeue(r->Queues[rule], r->Queue_front + rule, r->Queue_count + rule, r->In_queues[rule], g->n);
             }
             while (r->Queue_count_E[rule] > 0)
             {
-                int e = r->Queues_E[rule][--r->Queue_count_E[rule]];
-                r->In_queues_E[rule][e] = 0;
+                dequeue(r->Queues_E[rule], r->Queue_front_E + rule, r->Queue_count_E + rule, r->In_queues_E[rule], g->m);
             }
         }
         else
         {
             if (apply_on_edges == 0)
             {
-                next = r->Queues[rule][--r->Queue_count[rule]];
-                r->In_queues[rule][next] = 0;
+                next = dequeue(r->Queues[rule], r->Queue_front + rule, r->Queue_count + rule, r->In_queues[rule], g->n);
             }
             else
             {
-                next = r->Queues_E[rule][--r->Queue_count_E[rule]];
-                r->In_queues_E[rule][next] = 0;
+                next = dequeue(r->Queues_E[rule], r->Queue_front_E + rule, r->Queue_count_E + rule, r->In_queues_E[rule], g->m);
             }
         }
 

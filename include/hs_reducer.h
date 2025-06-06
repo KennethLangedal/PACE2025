@@ -8,12 +8,12 @@ typedef struct
 {
     long long _a;
 
-    int n;  // Number of vertices changed
-    int *V; // The changed vertices
-    int *in_V;  // Set to 1 if vertex is in the list
-    int m;  // Number of edges changed
-    int *E; // The changed edges 
-    int *in_E;  // Set to 1 if edge is in the list
+    int n;     // Number of vertices changed
+    int *V;    // The changed vertices
+    int *in_V; // Set to 1 if vertex is in the list
+    int m;     // Number of edges changed
+    int *E;    // The changed edges
+    int *in_E; // Set to 1 if edge is in the list
 } hs_change_list;
 
 /*
@@ -27,7 +27,7 @@ typedef struct
         - the c->n should be set to the number of vertices that observed a change in their neighborhood
         - the c->V should contain these vertices
         - the c->m should be set to the number of edges that observed a change in their neighborhood
-        - the c->E should contain these edges 
+        - the c->E should contain these edges
 */
 typedef int (*hs_func_reduce_graph)(hypergraph *hg, int u, int apply_on_edges, hs_change_list *c, int *fast_set, int fs_count);
 
@@ -42,7 +42,10 @@ typedef struct
     int n_rules;
     hs_reduction *Rule;
 
-    int *Queue_count, **Queues, *Queue_count_E, **Queues_E;
+    int *Queue_count, *Queue_front, *Queue_back;
+    int **Queues;
+    int *Queue_count_E, *Queue_front_E, *Queue_back_E;
+    int **Queues_E;
     int **In_queues, **In_queues_E;
 
     int *fast_set;
@@ -51,7 +54,6 @@ typedef struct
 
     int verbose;
 } hs_reducer;
-
 
 hs_reducer *hs_reducer_init(hypergraph *g, int n_rules, ...);
 
