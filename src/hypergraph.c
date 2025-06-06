@@ -94,7 +94,7 @@ hypergraph *hypergraph_parse_dominating_set(char *data, size_t *p)
 
     hypergraph_skip_line(data, p);
 
-    hypergraph *g = hypergraph_init(n, n);
+    hypergraph *g = hypergraph_init(n, m);
 
     // Every vertex is part of their own hyperedge
     for (int u = 0; u < n; u++)
