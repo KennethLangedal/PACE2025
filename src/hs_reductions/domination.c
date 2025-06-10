@@ -43,7 +43,7 @@ int hs_reductions_domination_reduce_graph(hypergraph *g, int ue, int apply_on_ed
             if (md < 0 || g->Ed[e] < g->Ed[md])
                 md = e;
         }
-        if (md < 0 || g->Ed[md] > (1 << 10))
+        if (md < 0 || g->Ed[md] > 512) // (1 << 10)
             return 0;
 
         for (int j = 0; j < g->Ed[md]; j++)
@@ -71,7 +71,7 @@ int hs_reductions_domination_reduce_graph(hypergraph *g, int ue, int apply_on_ed
         if (md < 0 || g->Vd[v] < g->Vd[md])
             md = v;
     }
-    if (md < 0 || g->Vd[md] > (1 << 10))
+    if (md < 0 || g->Vd[md] > 512) // (1 << 10)
         return 0;
 
     for (int i = 0; i < g->Vd[md]; i++)

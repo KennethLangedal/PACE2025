@@ -4,7 +4,7 @@
 
 typedef struct
 {
-    int n, m, nr, mr;
+    int n, m;
     int *Vd, *Va, *Ed, *Ea;
     int **V, **E;
 } hypergraph;

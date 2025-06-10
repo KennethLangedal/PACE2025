@@ -7,7 +7,8 @@
 typedef struct
 {
     // Solution
-    int cost;
+    int cost, balance;
+    long long age;
     double time, time_ref;
     int *hitting_set;
 
@@ -18,7 +19,7 @@ typedef struct
 
     // Graph structures
     int max_queue;
-    int *score, *cover_count, *one_tight, *T;
+    int *score, *cover_count, *one_tight, *tabu, *T;
 
     // Action log
     int log_count, log_alloc, log_enabled;
@@ -36,6 +37,8 @@ void local_search_hs_reset(graph_csr *g, local_search_hs *ls);
 void local_search_hs_add_vertex(graph_csr *g, local_search_hs *ls, int u);
 
 void local_search_hs_remove_vertex(graph_csr *g, local_search_hs *ls, int u);
+
+void local_search_hs_exclude_vertex(graph_csr *g, local_search_hs *ls, int u);
 
 void local_search_hs_greedy(graph_csr *g, local_search_hs *ls);
 

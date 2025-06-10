@@ -7,21 +7,45 @@
 
 #define MIN_ALLOC 8
 
-static inline void hypergraph_parse_id(char *data, size_t *p, int *v)
+static inline void skip_comments(FILE *f)
 {
-    while (data[*p] != '\n' && (data[*p] < '0' || data[*p] > '9'))
-        (*p)++;
-
-    *v = 0;
-    while (data[*p] >= '0' && data[*p] <= '9')
-        *v = (*v) * 10 + data[(*p)++] - '0';
+    int c = fgetc_unlocked(f);
+    while (c == 'c')
+    {
+        while (c != '\n')
+            c = fgetc_unlocked(f);
+        c = fgetc_unlocked(f);
+    }
+    ungetc(c, f);
 }
 
-static inline void hypergraph_skip_line(char *data, size_t *p)
+static inline void skip_line(FILE *f)
 {
-    while (data[*p] != '\n')
-        (*p)++;
-    (*p)++;
+    int c = fgetc_unlocked(f);
+    while (c != '\n')
+        c = fgetc_unlocked(f);
+}
+
+static inline void parse_unsigned_int(FILE *f, int *v)
+{
+    int c = fgetc_unlocked(f);
+    while ((c < '0' || c > '9') && c != '\n')
+        c = fgetc_unlocked(f);
+
+    *v = -1;
+    if (c == '\n')
+    {
+        ungetc(c, f);
+        return;
+    }
+
+    *v = 0;
+    while (c >= '0' && c <= '9')
+    {
+        *v = (*v * 10) + (c - '0');
+        c = fgetc_unlocked(f);
+    }
+    ungetc(c, f);
 }
 
 static inline int hypergraph_compare(const void *a, const void *b)
@@ -57,8 +81,6 @@ hypergraph *hypergraph_init(int n, int m)
     hypergraph *g = malloc(sizeof(hypergraph));
     g->n = n;
     g->m = m;
-    g->nr = n;
-    g->mr = m;
 
     g->Vd = malloc(sizeof(int) * n);
     g->Va = malloc(sizeof(int) * n);
@@ -86,15 +108,13 @@ hypergraph *hypergraph_init(int n, int m)
     return g;
 }
 
-hypergraph *hypergraph_parse_dominating_set(char *data, size_t *p)
+hypergraph *hypergraph_parse_dominating_set(FILE *f)
 {
     int n, m, u, v;
-    hypergraph_parse_id(data, p, &n);
-    hypergraph_parse_id(data, p, &m);
+    parse_unsigned_int(f, &n);
+    parse_unsigned_int(f, &m);
 
-    hypergraph_skip_line(data, p);
-
-    hypergraph *g = hypergraph_init(n, m);
+    hypergraph *g = hypergraph_init(n, n);
 
     // Every vertex is part of their own hyperedge
     for (int u = 0; u < n; u++)
@@ -105,11 +125,11 @@ hypergraph *hypergraph_parse_dominating_set(char *data, size_t *p)
 
     for (int i = 0; i < m; i++)
     {
-        while (data[*p] == 'c')
-            hypergraph_skip_line(data, p);
+        skip_line(f);
+        skip_comments(f);
 
-        hypergraph_parse_id(data, p, &u);
-        hypergraph_parse_id(data, p, &v);
+        parse_unsigned_int(f, &u);
+        parse_unsigned_int(f, &v);
 
         u--;
         v--;
@@ -119,38 +139,33 @@ hypergraph *hypergraph_parse_dominating_set(char *data, size_t *p)
 
         hypergraph_append_element(g->Vd + v, g->Va + v, g->V + v, u);
         hypergraph_append_element(g->Ed + u, g->Ea + u, g->E + u, v);
-
-        hypergraph_skip_line(data, p);
     }
 
     return g;
 }
 
-hypergraph *hypergraph_parse_hitting_set(char *data, size_t *p)
+hypergraph *hypergraph_parse_hitting_set(FILE *f)
 {
     int n, m, v;
-    hypergraph_parse_id(data, p, &n);
-    hypergraph_parse_id(data, p, &m);
-
-    hypergraph_skip_line(data, p);
+    parse_unsigned_int(f, &n);
+    parse_unsigned_int(f, &m);
 
     hypergraph *g = hypergraph_init(n, m);
 
     for (int i = 0; i < m; i++)
     {
-        while (data[*p] == 'c')
-            hypergraph_skip_line(data, p);
+        skip_line(f);
+        skip_comments(f);
 
-        hypergraph_parse_id(data, p, &v);
+        parse_unsigned_int(f, &v);
         while (v > 0)
         {
             v--;
             hypergraph_append_element(g->Vd + v, g->Va + v, g->V + v, i);
             hypergraph_append_element(g->Ed + i, g->Ea + i, g->E + i, v);
 
-            hypergraph_parse_id(data, p, &v);
+            parse_unsigned_int(f, &v);
         }
-        hypergraph_skip_line(data, p);
     }
 
     return g;
@@ -158,37 +173,24 @@ hypergraph *hypergraph_parse_hitting_set(char *data, size_t *p)
 
 hypergraph *hypergraph_parse(FILE *f)
 {
-    // fseek(f, 0, SEEK_END);
-    // size_t size = ftell(f);
-    // fseek(f, 0, SEEK_SET);
-
-    char *data = malloc(sizeof(char) * (1 << 28));
-    size_t n_red = fread(data, sizeof(char), (1 << 28), stdin);
-
-    // char *data = mmap(0, size, PROT_READ, MAP_PRIVATE, fileno_unlocked(f), 0);
-    size_t p = 0;
     hypergraph *g = NULL;
 
-    while (data[p] == 'c')
-        hypergraph_skip_line(data, &p);
+    skip_comments(f);
 
-    assert(data[p] == 'p');
-
-    p += 2;
+    int c = fgetc_unlocked(f);
+    c = fgetc_unlocked(f);
+    c = fgetc_unlocked(f);
 
     // Dominating Set instance
-    if (data[p] == 'd' && data[p + 1] == 's')
+    if (c == 'd')
     {
-        g = hypergraph_parse_dominating_set(data, &p);
+        g = hypergraph_parse_dominating_set(f);
     }
     // Hitting Set instance
-    else if (data[p] == 'h' && data[p + 1] == 's')
+    else if (c == 'h')
     {
-        g = hypergraph_parse_hitting_set(data, &p);
+        g = hypergraph_parse_hitting_set(f);
     }
-
-    // munmap(data, size);
-    free(data);
 
     return g;
 }
@@ -326,7 +328,6 @@ void hypergraph_remove_vertex(hypergraph *g, int u)
         g->Ed[e]--;
     }
 
-    g->nr--;
     g->Vd[u] = 0;
 }
 
@@ -341,8 +342,9 @@ void hypergraph_remove_edge(hypergraph *g, int e)
         memmove(g->V[v] + p, g->V[v] + p + 1, sizeof(int) * (g->Vd[v] - p - 1));
         g->Vd[v]--;
     }
-    g->mr--;
     g->Ed[e] = 0;
+    g->Ea[e] = MIN_ALLOC;
+    g->E[e] = realloc(g->E[e], sizeof(int) * g->Ea[e]);
 }
 
 void hypergraph_include_vertex(hypergraph *g, int u)
@@ -354,9 +356,10 @@ void hypergraph_include_vertex(hypergraph *g, int u)
     while (g->Vd[u] > 0)
         hypergraph_remove_edge(g, g->V[u][0]);
 
-    g->nr--;
     g->Ed[e] = 1;
     g->E[e][0] = u;
     g->Vd[u] = 1;
     g->V[u][0] = e;
+    g->Va[u] = MIN_ALLOC;
+    g->V[u] = realloc(g->V[u], sizeof(int) * g->Va[u]);
 }
