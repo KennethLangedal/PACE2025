@@ -14,11 +14,9 @@ typedef struct
     // Queue structures
     int queue_count;
     int *queue, *in_queue;
-    int *prev_queue, *in_prev_queue;
 
     // Graph structures
-    int max_queue;
-    int *score, *cover_count, *one_tight, *T;
+    int *score, *cover_count, *one_tight;
 
     // Action log
     int log_count, log_alloc, log_enabled;
@@ -41,7 +39,6 @@ void local_search_hs_greedy(graph_csr *g, local_search_hs *ls);
 
 void local_search_hs_perturbe(graph_csr *g, local_search_hs *ls);
 
-void local_search_hs_explore(graph_csr *g, local_search_hs *ls, double tl, volatile sig_atomic_t *tle,
-                             long long il, int offset, int verbose);
+void local_search_hs_explore(graph_csr *g, local_search_hs *ls, double tl, volatile sig_atomic_t *tle, int offset, int verbose);
 
 void local_search_hs_unwind(graph_csr *g, local_search_hs *ls, int log_t);

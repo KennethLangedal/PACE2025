@@ -18,7 +18,7 @@ clique_set *find_cliques(graph *g, int max_cliques, int max_clique_size);
 
 void free_clique_set(clique_set *cs);
 
-long long maxsat_solve_hitting_set(hypergraph *hg);
+long long maxsat_solve_hitting_set(hypergraph *hg, int **res);
 
 int* maxsat_solve_MWIS(graph *g);
 

@@ -1,6 +1,7 @@
 #include "connected_components.h"
 
 #include <stdlib.h>
+#include <stdbool.h>
 
 void translation_table_free(translation_table *tt) {
     free(tt->old);
@@ -120,8 +121,8 @@ hypergraph **find_connected_components(hypergraph *hg, int *n_hypergraphs, trans
     }
 
     // Step 5: Allocate memory for translation table
-    translation_table **vertex_translation_tables = (translation_table **) malloc(n_hg * sizeof(translation_table*));
-    translation_table **edge_translation_tables   = (translation_table **) malloc(n_hg * sizeof(translation_table*));
+    translation_table **vertex_translation_tables = (translation_table **) malloc(n_hg * sizeof(translation_table *));
+    translation_table **edge_translation_tables   = (translation_table **) malloc(n_hg * sizeof(translation_table *));
 
     for (int i = 0; i < n_hg; ++i) {
         vertex_translation_tables[i] = (translation_table *) malloc(sizeof(translation_table));
@@ -190,7 +191,7 @@ hypergraph **find_connected_components(hypergraph *hg, int *n_hypergraphs, trans
 
     for (int old_e = 0; old_e < hg->m; ++old_e) {
         if (hg->Ed[old_e] > 0) {
-            int id = component_id[hg->E[old_e][0]];
+            int id    = component_id[hg->E[old_e][0]];
             int new_e = get_new(edge_translation_tables[id], old_e);
 
             components[id]->Ed[new_e] = hg->Ed[old_e];
@@ -215,4 +216,56 @@ hypergraph **find_connected_components(hypergraph *hg, int *n_hypergraphs, trans
     *edge_tt       = edge_translation_tables;
 
     return components;
+}
+
+bool are_multiple_components(hypergraph *hg) {
+    // Step 1: Determine the number of connected components and for each vertex
+    // determine the corresponding component id
+    int n_hg = 0;
+
+    int      *component_id = (int *) malloc(hg->n * sizeof(int));
+    for (int v             = 0; v < hg->n; ++v) { component_id[v] = -1; }
+
+    int *bfs_arr     = (int *) malloc(hg->n * sizeof(int));
+    int bfs_arr_size = 0;
+
+    // put the first non-empty vertex into the queue
+    for (int v = 0; v < hg->n; ++v) {
+        if (hg->Vd[v] > 0) {
+            bfs_arr[bfs_arr_size++] = v;
+            break;
+        }
+    }
+
+    while (bfs_arr_size > 0) {
+        int u = bfs_arr[--bfs_arr_size];
+
+        component_id[u] = 0;
+
+        for (int i = 0; i < hg->Vd[u]; ++i) {
+            int e = hg->V[u][i];
+
+            for (int j = 0; j < hg->Ed[e]; ++j) {
+                int e_v = hg->E[e][j];
+                if (component_id[e_v] == -1) {
+                    component_id[e_v]       = -2;
+                    bfs_arr[bfs_arr_size++] = e_v;
+                }
+            }
+        }
+    }
+
+    // for each vertex either it belongs to component 0 or it is empty
+    for (int v = 0; v < hg->n; ++v) {
+        if (!(component_id[v] == 0 || hg->Vd[v] == 0)) {
+
+            free(component_id);
+            free(bfs_arr);
+            return true;
+        }
+    }
+
+    free(component_id);
+    free(bfs_arr);
+    return false;
 }

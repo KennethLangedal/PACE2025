@@ -2,7 +2,7 @@ SHELL = /bin/bash
 
 CC = gcc
 # CFLAGS = -g -std=gnu17 -march=haswell -O3 -I include -DNDEBUG
-CFLAGS = -g -std=gnu17 -march=native -O3 -I include # -DNDEBUG
+CFLAGS = -g -std=gnu17 -march=native -O3 -I include -DNDEBUG
 LDFLAGS = -L bin/ -lmwis_reductions
 UWRMAXSAT_LIBS = -luwrmaxsat -lcadical -lcominisatps -lmaxpre -lz -lgmp -pthread -lstdc++ -lm -lscip -lsoplex
 

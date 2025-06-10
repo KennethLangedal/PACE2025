@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdbool.h>
+
 #include "hypergraph.h"
 
 typedef struct {
@@ -47,3 +49,11 @@ int get_new(translation_table *tt, int old);
  * @return An array of hypergraphs. The caller is responsible for freeing the memory.
  */
 hypergraph** find_connected_components(hypergraph *hg, int *n_hypergraphs, translation_table ***vertex_tt, translation_table ***edge_tt);
+
+/**
+ * Determines if the hg consists of multiple non-empty components, but not how many.
+ *
+ * @param hg The hypergraph.
+ * @return True if the hypergraph consists of multiple non-empty components, false else.
+ */
+bool are_multiple_components(hypergraph *hg);
