@@ -20,6 +20,8 @@ void free_clique_set(clique_set *cs);
 
 long long maxsat_solve_hitting_set(hypergraph *hg, int **res);
 
+long long maxsat_solve_hitting_set_implicit(hypergraph *hg, int **res);
+
 int* maxsat_solve_MWIS(graph *g);
 
 int* maxsat_solve_MWIS_with_cliques(graph *g, clique_set *cs);

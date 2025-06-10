@@ -146,21 +146,22 @@ long long solve_hg(hypergraph *hg, bool is_one_component, int **sol)
                 {
                     int max_v_deg = get_max_v_deg(hg);
                     int max_e_deg = get_max_e_deg(hg);
-                    printf("mwis solving a hg with %d vertices (max deg=%d) and %d edges (max deg=%d) in %f sec\n", hg->n, max_v_deg, hg->m, max_e_deg, t1 - t0);
+                    // printf("mwis solving a hg with %d vertices (max deg=%d) and %d edges (max deg=%d) in %f sec\n", hg->n, max_v_deg, hg->m, max_e_deg, t1 - t0);
                 }
             }
             else
             {
 
                 double t0 = get_wtime();
-                HS = maxsat_solve_hitting_set(hg, sol);
+                // HS = maxsat_solve_hitting_set(hg, sol);
+                HS = maxsat_solve_hitting_set_inmplicit(hg, sol);
                 double t1 = get_wtime();
                 t_total += t1 - t0;
                 if (hg->n > 100)
                 {
                     int max_v_deg = get_max_v_deg(hg);
                     int max_e_deg = get_max_e_deg(hg);
-                    printf("maxsat solving a hg with %d vertices (max deg=%d) and %d edges (max deg=%d) in %f sec (total: %f)\n", hg->n, max_v_deg, hg->m, max_e_deg, t1 - t0, t_total);
+                    // printf("maxsat solving a hg with %d vertices (max deg=%d) and %d edges (max deg=%d) in %f sec (total: %f)\n", hg->n, max_v_deg, hg->m, max_e_deg, t1 - t0, t_total);
                 }
             }
         }
