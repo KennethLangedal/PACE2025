@@ -69,6 +69,7 @@ int main(int argc, char **argv)
         rc += hs_reductions_edge_domination(hg, tl - (get_wtime() - t0));
         rc += hs_reductions_vertex_domination(hg, tl - (get_wtime() - t0));
     }
+    hs_reductions_degree_one_rule(hg, 10.0);
 
     int nr = 0, mr = 0, md = 0;
     for (int i = 0; i < hg->n; i++)
@@ -91,35 +92,49 @@ int main(int argc, char **argv)
     int *FM_HS = malloc(sizeof(int) * hg->n);
     graph_csr *gh = graph_csr_construct_hypergraph(hg, FM_HS);
 
-    // FILE *f = fopen("test.csv", "w");
-    // fprintf(f, "source,target\n");
-    // for (int i = 0; i < gh->n; i++)
+    // int valid = 1;
+    // for (int u = 0; u < gh->n; u++)
     // {
-    //     for (int j = gh->V[i]; j < gh->V[i + 1]; j++)
+    //     int sorted = 1;
+    //     for (int i = gh->V[u]; i < gh->V[u + 1]; i++)
     //     {
-    //         fprintf(f, "%d,%d\n", i, gh->n + gh->E[j]);
+    //         int e = gh->E[i];
+    //         if (i > gh->V[u] && e <= gh->E[i - 1])
+    //             sorted = 0;
+
+    //         int c = 0;
+    //         for (int j = gh->V[gh->n + e]; j < gh->V[gh->n + e + 1]; j++)
+    //         {
+    //             int v = gh->E[j];
+    //             if (v == u)
+    //                 c++;
+    //         }
+    //         if (c != 1)
+    //         {
+    //             printf("Error in graph structure\n");
+    //             return 0;
+    //         }
+    //     }
+    //     if (!sorted)
+    //     {
+    //         printf("Unsorted lists\n");
+    //         return 0;
     //     }
     // }
-    // fclose(f);
-    // return 0;
 
     local_search_hs *ls_hs = local_search_hs_init(gh, 0);
 
-    if (nr > 5000 && md < 32)
-    {
-        graph *gr = hs_reductions_to_mwis(hg, 32, &offset); // (1 << 2)
+    long long m = 0;
+    for (int i = 0; i < hg->n; i++)
+        m += hg->Vd[i];
 
-        // FILE *f = fopen("test.csv", "w");
-        // fprintf(f, "source,target\n");
-        // for (int i = 0; i < gr->n; i++)
-        // {
-        //     for (int j = 0; j < gr->D[i]; j++)
-        //     {
-        //         fprintf(f, "%d,%d\n", i, gr->V[i][j]);
-        //     }
-        // }
-        // fclose(f);
-        // return 0;
+    for (int i = 0; i < hg->m; i++)
+        m += (hg->Ed[i] * hg->Ed[i]) / 2;
+
+    if ((nr > 5000 && md < 32 && m < 5000000))
+    {
+        int *FM_MWIS = malloc(sizeof(int) * hg->n);
+        graph *gr = hs_reductions_to_mwis(hg, FM_MWIS, 32, &offset); // (1 << 2)
 
         if (VERBOSE)
             printf("IS |V|=%lld |E|=%lld offset=%lld\n", gr->nr, gr->m, offset);
@@ -141,7 +156,7 @@ int main(int argc, char **argv)
         }
         else
         {
-            double tr = 20.0;
+            double tr = 10.0;
             mwis_reduction_dinsify(gr, rd, tr);
 
             if (VERBOSE)
@@ -150,9 +165,9 @@ int main(int argc, char **argv)
             int *FM = malloc(sizeof(int) * gr->n);
             graph_csr *g = graph_csr_construct(gr, FM);
 
-            if (gr->nr > 50000)
+            if (gr->nr > 100000)
             {
-                tr = 3000.0 - (get_wtime() - t0);
+                tr = 270.0 - (get_wtime() - t0);
                 local_search *ls = local_search_init(g, 0);
                 local_search_explore(g, ls, tr, &tle, LLONG_MAX, offset, VERBOSE);
 
@@ -161,7 +176,7 @@ int main(int argc, char **argv)
             }
             else
             {
-                tr = 3000.0 - (get_wtime() - t0);
+                tr = 270.0 - (get_wtime() - t0);
                 chils *c = chils_init(g, 8, 0);
                 c->step_time = 2.5;
                 chils_run(g, c, tr, &tle, LLONG_MAX, offset, VERBOSE);
@@ -190,18 +205,19 @@ int main(int argc, char **argv)
             }
             if (!hit)
             {
-                I[hg->E[e][0]] = 0;
+                I[FM_MWIS[hg->E[e][0]]] = 0;
             }
         }
 
         for (int u = 0; u < hg->n; u++)
         {
-            if (FM_HS[u] >= 0 && I[u])
+            if (FM_HS[u] >= 0 && I[FM_MWIS[u]])
             {
                 local_search_hs_remove_vertex(gh, ls_hs, FM_HS[u]);
             }
         }
 
+        free(FM_MWIS);
         free(I);
     }
 
@@ -212,16 +228,16 @@ int main(int argc, char **argv)
             offset++;
     }
 
-    local_search_hs_explore(gh, ls_hs, 3600.0 - (get_wtime() - t0), &tle, LLONG_MAX, offset, VERBOSE);
+    local_search_hs_explore(gh, ls_hs, 350.0 - (get_wtime() - t0), &tle, offset, VERBOSE);
 
     if (!VERBOSE)
     {
         printf("%lld\n", ls_hs->cost + offset);
-        for (int u = 0; u < hg->n; u++)
-        {
-            if (hg->Vd[u] == 1 || ls_hs->hitting_set[FM_HS[u]])
-                printf("%d\n", u + 1);
-        }
+        // for (int u = 0; u < hg->n; u++)
+        // {
+        //     if (hg->Vd[u] == 1 || ls_hs->hitting_set[FM_HS[u]])
+        //         printf("%d\n", u + 1);
+        // }
     }
 
     free(FM_HS);

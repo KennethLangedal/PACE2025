@@ -208,7 +208,7 @@ int hs_reductions_edge_domination(hypergraph *g, double tl)
             if (md < 0 || g->Vd[v] < g->Vd[md])
                 md = v;
         }
-        if (md < 0) //  || g->Vd[md] > 64
+        if (md < 0) // || g->Vd[md] > 64
             continue;
 
         for (int i = 0; i < g->Vd[md]; i++)
@@ -269,7 +269,7 @@ int hs_reductions_counting_rule(hypergraph *g)
     return r;
 }
 
-graph *hs_reductions_to_mwis(hypergraph *hg, int max_degree, long long *offset)
+graph *hs_reductions_to_mwis(hypergraph *hg, int *FM, int max_degree, long long *offset)
 {
     graph *g = graph_init();
     *offset = 0;
@@ -279,17 +279,29 @@ graph *hs_reductions_to_mwis(hypergraph *hg, int max_degree, long long *offset)
 
     for (int i = 0; i < hg->n; i++)
     {
-        graph_add_vertex(g, vw);
-        *offset += vw;
+        if (hg->Vd[i] > 1)
+        {
+            FM[i] = g->n;
+            graph_add_vertex(g, vw);
+            *offset += vw;
+        }
+        else
+        {
+            FM[i] = -1;
+            if (hg->Vd[i] == 1)
+            {
+                *offset += vw;
+            }
+        }
     }
 
     for (int i = 0; i < hg->m; i++)
     {
-        if (hg->Ed[i] == 0 || hg->Ed[i] > max_degree)
+        if (hg->Ed[i] < 2 || hg->Ed[i] > max_degree)
             continue;
         else if (hg->Ed[i] == 2)
         {
-            graph_add_edge(g, hg->E[i][0], hg->E[i][1]);
+            graph_add_edge(g, FM[hg->E[i][0]], FM[hg->E[i][1]]);
             continue;
         }
         *offset += ew;
@@ -310,7 +322,7 @@ graph *hs_reductions_to_mwis(hypergraph *hg, int max_degree, long long *offset)
         for (int j = 0; j < hg->Ed[i]; j++)
         {
             int v = hg->E[i][j];
-            graph_add_edge(g, v, s + j);
+            graph_add_edge(g, FM[v], s + j);
         }
     }
 

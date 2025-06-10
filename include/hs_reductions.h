@@ -13,4 +13,4 @@ int hs_reductions_edge_domination(hypergraph *g, double tl);
 
 int hs_reductions_counting_rule(hypergraph *g);
 
-graph *hs_reductions_to_mwis(hypergraph *g, int max_degree, long long *offset);
+graph *hs_reductions_to_mwis(hypergraph *g, int *FM, int max_degree, long long *offset);
