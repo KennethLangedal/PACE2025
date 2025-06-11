@@ -6,8 +6,8 @@ CFLAGS = -g -std=gnu17 -march=native -O3 -I include -DNDEBUG
 LDFLAGS = -L bin/ -lmwis_reductions
 UWRMAXSAT_LIBS = -luwrmaxsat -lcadical -lcominisatps -lmaxpre -lz -lgmp -pthread -lstdc++ -lm -lscip -lsoplex
 
-OBJ_EXACT = main_exact.o hypergraph.o maxsat.o connected_components.o hs_reducer.o hs_reductions.o degree_one.o domination.o \
-extended_domination.o counting_rule.o
+OBJ_EXACT = main_exact.o hypergraph.o maxsat.o ilp.o connected_components.o hs_reducer.o hs_reductions.o degree_one.o domination.o \
+extended_domination.o counting_rule.o hs_reduction_to_mwis.o
 OBJ_EXACT := $(addprefix bin/, $(OBJ_EXACT))
 
 OBJ_HEURISTIC = main_heuristic.o hypergraph.o graph_csr.o local_search.o local_search_hs.o chils.o  connected_components.o \

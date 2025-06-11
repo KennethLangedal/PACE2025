@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <stdlib.h>
 
-graph *hs_reductions_to_mwis(hypergraph *hg, int max_degree, long long *offset)
+graph *hs_reductions_to_mwis2(hypergraph *hg, int max_degree, long long *offset)
 {
     graph *g = graph_init();
     *offset = 0;

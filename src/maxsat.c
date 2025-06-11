@@ -168,6 +168,110 @@ long long maxsat_solve_hitting_set(hypergraph *hg, int **res) {
     return hs_sol;
 }
 
+long long maxsat_solve_hitting_set_implicit(hypergraph *hg, int **res) {
+    if (!hg) return -1;
+
+    void *sv = ipamir_init();
+
+    // Add small edges
+    for (int e = 0; e < hg->m; e++) {
+        if (hg->Ed[e] > 0 && hg->Ed[e] <= 4) {
+            for (int j = 0; j < hg->Ed[e]; j++) {
+                int v = hg->E[e][j];
+                ipamir_add_hard(sv, (int32_t)(v + 1));
+            }
+            ipamir_add_hard(sv, 0);
+        }
+    }
+
+    // Add one soft clause per vertex
+    for (int i = 0; i < hg->n; i++) {
+        if (hg->Vd[i] == 0) continue;
+        ipamir_add_soft_lit(sv, (int32_t)(i + 1), 1);
+    }
+
+    /* int result = ipamir_solve(sv);
+    printf("result:%d", result); */
+
+    int *edges_to_add = (int *)malloc(hg->m * sizeof(int));
+    int edge_queue_size = 0;
+
+    long long hs_sol = -1;
+    int *solution = NULL;
+
+    int counter = 0;
+    while (1) {
+        int result = ipamir_solve(sv);
+        if (result != 30) break;
+
+        uint64_t obj = ipamir_val_obj(sv);
+        hs_sol = (long long)obj;
+
+        free(solution);
+        solution = (int *)malloc(hs_sol * sizeof(int));
+        int *I = (int *)calloc(hg->n, sizeof(int));
+        int res_size = 0;
+
+        for (int i = 0; i < hg->n; i++) {
+            if (hg->Vd[i] == 0) continue;
+            int lit = i + 1;
+            if (ipamir_val_lit(sv, lit) == lit) {
+                I[i] = 1;
+                solution[res_size++] = i;
+            }
+        }
+
+        // Check for hyperedges not yet hit
+        edge_queue_size = 0; // reset for next
+        for (int e = 0; e < hg->m; e++) {
+            if (hg->Ed[e] == 0) continue;
+
+            // Skip small edges since they are already added and should be hit
+            if (hg->Ed[e] <= 4) continue;
+
+            int hit = 0;
+            for (int j = 0; j < hg->Ed[e]; j++) {
+                int u = hg->E[e][j];
+                if (I[u]) {
+                    hit = 1;
+                    break;
+                }
+            }
+
+            if (!hit) {
+                edges_to_add[edge_queue_size++] = e;
+            }
+        }
+
+        free(I);
+
+        // Add only the new edges found to be not hit
+        if (edge_queue_size == 0)
+            break;
+
+        for (int i = 0; i < edge_queue_size; i++) {
+            int e = edges_to_add[i];
+            for (int j = 0; j < hg->Ed[e]; j++) {
+                int v = hg->E[e][j];
+                ipamir_add_hard(sv, (int32_t)(v + 1));
+            }
+            ipamir_add_hard(sv, 0);
+        }
+    }
+
+    if (hs_sol >= 0) {
+        *res = solution;
+    } else {
+        *res = NULL;
+        free(solution);
+    }
+
+    ipamir_release(sv);
+    free(edges_to_add);
+
+    return hs_sol;
+}
+
 int* maxsat_solve_MWIS(graph *g) {
     if (!g) return NULL;
 
