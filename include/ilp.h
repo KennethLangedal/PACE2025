@@ -14,4 +14,6 @@
  */
 int solve_mwis_ilp(const graph *g, const clique_set *cliques, int *solution, double timeout);
 
+int solve_hitting_set_ilp(const hypergraph *hg, int *solution, double timeout);
+
 #endif // ILP_H

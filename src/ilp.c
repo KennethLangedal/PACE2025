@@ -110,3 +110,79 @@ int solve_mwis_ilp(const graph *g, const clique_set *cliques, int *solution, dou
     SCIP_CALL_EXC(SCIPfree(&scip));
     return status;
 }
+
+int solve_hitting_set_ilp(const hypergraph *hg, int *solution, double timeout) {
+    SCIP *scip;
+    SCIP_VAR **vars = NULL;
+
+    SCIP_CALL_EXC(SCIPcreate(&scip));
+    SCIP_CALL_EXC(SCIPincludeDefaultPlugins(scip));
+    SCIPmessagehdlrSetQuiet(SCIPgetMessagehdlr(scip), TRUE);
+    SCIP_CALL_EXC(SCIPcreateProbBasic(scip, "hitting_set"));
+    SCIP_CALL_EXC(SCIPsetObjsense(scip, SCIP_OBJSENSE_MINIMIZE));
+    SCIP_CALL_EXC(SCIPsetRealParam(scip, "limits/time", timeout));
+    //SCIP_CALL_EXC(SCIPsetObjlimit(scip, 1921)); 
+
+    vars = (SCIP_VAR **)malloc(hg->n * sizeof(SCIP_VAR *));
+    if (!vars) {
+        fprintf(stderr, "Memory allocation failed\n");
+        return 0;
+    }
+
+    // Create binary variables for each vertex
+    for (int i = 0; i < hg->n; ++i) {
+        if (hg->Vd[i] == 0) {
+            vars[i] = NULL;
+            continue;
+        }
+
+        char name[32];
+        snprintf(name, sizeof(name), "x%d", i);
+        SCIP_CALL_EXC(SCIPcreateVarBasic(scip, &vars[i], name, 0.0, 1.0, 1.0, SCIP_VARTYPE_BINARY));
+        SCIP_CALL_EXC(SCIPaddVar(scip, vars[i]));
+    }
+
+    // Add one constraint per hyperedge: at least one vertex must be chosen
+    for (int e = 0; e < hg->m; ++e) {
+        if (hg->Ed[e] == 0) continue;
+
+        SCIP_CONS *cons;
+        char cname[64];
+        snprintf(cname, sizeof(cname), "edge_%d", e);
+
+        SCIP_CALL_EXC(SCIPcreateConsBasicLinear(scip, &cons, cname, 0, NULL, NULL, 1.0, SCIPinfinity(scip)));
+
+        for (int j = 0; j < hg->Ed[e]; ++j) {
+            int v = hg->E[e][j];
+            if (hg->Vd[v] > 0 && vars[v]) {
+                SCIP_CALL_EXC(SCIPaddCoefLinear(scip, cons, vars[v], 1.0));
+            }
+        }
+
+        SCIP_CALL_EXC(SCIPaddCons(scip, cons));
+        SCIP_CALL_EXC(SCIPreleaseCons(scip, &cons));
+    }
+
+    SCIP_CALL_EXC(SCIPsolve(scip));
+
+    SCIP_SOL *sol = SCIPgetBestSol(scip);
+    int status = (SCIPgetStatus(scip) == SCIP_STATUS_OPTIMAL) ? 1 : 0;
+
+    for (int i = 0; i < hg->n; ++i) {
+        if (hg->Vd[i] > 0 && vars[i]) {
+            solution[i] = (SCIPgetSolVal(scip, sol, vars[i]) > 0.5) ? 1 : 0;
+        } else {
+            solution[i] = 0;
+        }
+    }
+
+    for (int i = 0; i < hg->n; ++i) {
+        if (vars[i]) {
+            SCIP_CALL_EXC(SCIPreleaseVar(scip, &vars[i]));
+        }
+    }
+
+    free(vars);
+    SCIP_CALL_EXC(SCIPfree(&scip));
+    return status;
+}
