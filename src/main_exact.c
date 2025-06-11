@@ -7,6 +7,7 @@
 #include "hs_reductions/counting_rule.h"
 #include "hs_reducer.h"
 #include "hs_reductions.h"
+#include "hs_reduction_to_mwis.h"
 
 #include <time.h>
 #include <stdio.h>
@@ -37,7 +38,7 @@ long long mwis_solve_hg(hypergraph *hg, int **sol, int reduce_option)
 {
     // reduce_option: 0 - None, 1 - Struction, 2 - Reduce Graph
     long long offset;
-    graph *g = hs_reductions_to_mwis(hg, (1 << 30), &offset);
+    graph *g = hs_reductions_to_mwis2(hg, (1 << 30), &offset);
 
     void *rd = NULL;
     if (reduce_option == 1)
@@ -104,13 +105,14 @@ long long solve_hg(hypergraph *hg, bool is_one_component, int **sol)
     if (is_one_component)
     {
         // The hypergraph is one component so solve it
+        double tl = 60.0;
 
-        hs_reductions_degree_one_rule(hg);
-        hs_reductions_vertex_domination(hg);
-        hs_reductions_edge_domination(hg);
-        hs_reductions_degree_one_rule(hg);
-        hs_reductions_vertex_domination(hg);
-        hs_reductions_edge_domination(hg);
+        hs_reductions_degree_one_rule(hg, tl-get_wtime());
+        hs_reductions_vertex_domination(hg, tl-get_wtime());
+        hs_reductions_edge_domination(hg, tl-get_wtime());
+        hs_reductions_degree_one_rule(hg, tl-get_wtime());
+        hs_reductions_vertex_domination(hg, tl-get_wtime());
+        hs_reductions_edge_domination(hg, tl-get_wtime());
 
         hs_reducer *r = hs_reducer_init(hg, 2,
                                         hs_degree_one,
