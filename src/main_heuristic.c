@@ -108,11 +108,8 @@ int main(int argc, char **argv)
     for (int i = 0; i < hg->m; i++)
         m += (hg->Ed[i] * hg->Ed[i]) / 2;
 
-    int stored_mwis = 0;
     if ((nr > 5000 && md < 32 && m < 5000000))
     {
-        stored_mwis = 1;
-
         int *FM_MWIS = malloc(sizeof(int) * hg->n);
         graph *gr = hs_reductions_to_mwis(hg, FM_MWIS, 32, &offset); // (1 << 2)
 
@@ -145,79 +142,21 @@ int main(int argc, char **argv)
             int *FM = malloc(sizeof(int) * gr->n);
             graph_csr *g = graph_csr_construct(gr, FM);
 
-            // Store Graph
-            char graph_name[256];
-            int p = name_offset(argv[1]), j = 0;
-            while (argv[1][p] != '.')
-                graph_name[j++] = argv[1][p++];
-            graph_name[j++] = '.';
-            graph_name[j++] = 'g';
-            graph_name[j++] = 'r';
-            graph_name[j++] = '\0';
-            f = fopen(graph_name, "w");
-            fprintf(f, "%d %d %d\n", g->n, g->V[g->n], 10);
-            for (int u = 0; u < g->n; u++)
-            {
-                fprintf(f, "%lld", g->W[u]);
-                for (int i = g->V[u]; i < g->V[u + 1]; i++)
-                {
-                    int v = g->E[i];
-                    fprintf(f, " %d", v + 1);
-                }
-                fprintf(f, "\n");
-            }
-            fclose(f);
-
             if (gr->nr > 100000)
             {
-                tr = 3600.0 - (get_wtime() - t0);
+                tr = 270.0 - (get_wtime() - t0);
                 local_search *ls = local_search_init(g, 0);
                 local_search_explore(g, ls, tr, &tle, LLONG_MAX, offset, VERBOSE);
-
-                // Store Solution
-                char sol_name[256];
-                int p = name_offset(argv[1]);
-                j = 0;
-                while (argv[1][p] != '.')
-                    sol_name[j++] = argv[1][p++];
-                sol_name[j++] = '.';
-                sol_name[j++] = 'i';
-                sol_name[j++] = 's';
-                sol_name[j++] = '\0';
-                f = fopen(sol_name, "w");
-                for (int u = 0; u < g->n; u++)
-                {
-                    fprintf(f, "%d\n", ls->independent_set[u]);
-                }
-                fclose(f);
 
                 I = mwis_reduction_lift_solution(ls->independent_set, rd);
                 local_search_free(ls);
             }
             else
             {
-                tr = 3600.0 - (get_wtime() - t0);
+                tr = 270.0 - (get_wtime() - t0);
                 chils *c = chils_init(g, 8, 0);
                 c->step_time = 2.5;
                 chils_run(g, c, tr, &tle, LLONG_MAX, offset, VERBOSE);
-
-                // Store Solution
-                char sol_name[256];
-                int p = name_offset(argv[1]);
-                j = 0;
-                while (argv[1][p] != '.')
-                    sol_name[j++] = argv[1][p++];
-                sol_name[j++] = '.';
-                sol_name[j++] = 'i';
-                sol_name[j++] = 's';
-                sol_name[j++] = '\0';
-                f = fopen(sol_name, "w");
-                int *rI = chils_get_best_independent_set(c);
-                for (int u = 0; u < g->n; u++)
-                {
-                    fprintf(f, "%d\n", rI[u]);
-                }
-                fclose(f);
 
                 I = mwis_reduction_lift_solution(chils_get_best_independent_set(c), rd);
                 chils_free(c);
@@ -266,69 +205,16 @@ int main(int argc, char **argv)
             offset++;
     }
 
-    local_search_hs_explore(gh, ls_hs, 3700.0 - (get_wtime() - t0), &tle, offset, VERBOSE);
-
-    if (!stored_mwis)
-    {
-        // Store Graph
-        char graph_name[256];
-        int p = name_offset(argv[1]), j = 0;
-        while (argv[1][p] != '.')
-            graph_name[j++] = argv[1][p++];
-        graph_name[j++] = '.';
-        graph_name[j++] = 'g';
-        graph_name[j++] = 'r';
-        graph_name[j++] = '\0';
-        f = fopen(graph_name, "w");
-        fprintf(f, "%d %d %d\n", gh->n + gh->m, gh->V[gh->n + gh->m], 10);
-        for (int u = 0; u < gh->n; u++)
-        {
-            fprintf(f, "%d", 1);
-            for (int i = gh->V[u]; i < gh->V[u + 1]; i++)
-            {
-                int v = gh->E[i];
-                fprintf(f, " %d", gh->n + v + 1);
-            }
-            fprintf(f, "\n");
-        }
-        for (int e = 0; e < gh->m; e++)
-        {
-            fprintf(f, "%d", 0);
-            for (int i = gh->V[gh->n + e]; i < gh->V[gh->n + e + 1]; i++)
-            {
-                int v = gh->E[i];
-                fprintf(f, " %d", v + 1);
-            }
-            fprintf(f, "\n");
-        }
-        fclose(f);
-
-        // Store Solution
-        char sol_name[256];
-        p = name_offset(argv[1]);
-        j = 0;
-        while (argv[1][p] != '.')
-            sol_name[j++] = argv[1][p++];
-        sol_name[j++] = '.';
-        sol_name[j++] = 'h';
-        sol_name[j++] = 's';
-        sol_name[j++] = '\0';
-        f = fopen(sol_name, "w");
-        for (int u = 0; u < gh->n; u++)
-        {
-            fprintf(f, "%d\n", ls_hs->hitting_set[u]);
-        }
-        fclose(f);
-    }
+    local_search_hs_explore(gh, ls_hs, 350.0 - (get_wtime() - t0), &tle, offset, VERBOSE);
 
     if (!VERBOSE)
     {
         printf("%20s:%12lld\n", argv[1] + name_offset(argv[1]), ls_hs->cost + offset);
-        // for (int u = 0; u < hg->n; u++)
-        // {
-        //     if (hg->Vd[u] == 1 || ls_hs->hitting_set[FM_HS[u]])
-        //         printf("%d\n", u + 1);
-        // }
+        for (int u = 0; u < hg->n; u++)
+        {
+            if (hg->Vd[u] == 1 || ls_hs->hitting_set[FM_HS[u]])
+                printf("%d\n", u + 1);
+        }
     }
 
     free(FM_HS);
@@ -339,42 +225,3 @@ int main(int argc, char **argv)
 
     return 0;
 }
-
-// FILE *f = fopen("test.gr", "w");
-// fprintf(f, "%lld %lld %d\n", gr->n, gr->m, 10);
-// for (int i = 0; i < gr->n; i++)
-// {
-//     fprintf(f, "%lld", gr->W[i]);
-//     for (int j = 0; j < gr->D[i]; j++)
-//         fprintf(f, " %d", gr->V[i][j] + 1);
-//     fprintf(f, "\n");
-// }
-// fclose(f);
-
-// return 0;
-
-// for (int i = 0; i < hg->m; i++)
-// {
-//     if (hg->Ed[i] < 2)
-//         continue;
-//     int any = 0;
-//     for (int j = 0; j < hg->Ed[i]; j++)
-//     {
-//         int v = FM_HS[hg->E[i][j]];
-//         if (ls_hs->hitting_set[v])
-//             any = 1;
-//     }
-//     if (!any)
-//     {
-//         printf("Error in solution\n");
-//     }
-// }
-// int hs = 0;
-// for (int i = 0; i < hg->n; i++)
-// {
-//     if (hg->Vd[i] < 2)
-//         continue;
-//     int v = FM_HS[i];
-//     hs += ls_hs->hitting_set[v];
-// }
-// printf("%lld\n", hs + offset);
