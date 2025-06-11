@@ -56,9 +56,7 @@ int main(int argc, char **argv)
     action.sa_handler = term;
     sigaction(SIGTERM, &action, NULL);
 
-    FILE *f = fopen(argv[1], "r");
-    hypergraph *hg = hypergraph_parse(f);
-    fclose(f);
+    hypergraph *hg = hypergraph_parse(stdin);
 
     hypergraph_sort(hg);
 
@@ -176,7 +174,7 @@ int main(int argc, char **argv)
             int hit = 0;
             for (int i = 0; i < hg->Ed[e]; i++)
             {
-                int u = hg->E[e][i];
+                int u = FM_MWIS[hg->E[e][i]];
                 if (!I[u])
                     hit = 1;
             }
@@ -209,7 +207,7 @@ int main(int argc, char **argv)
 
     if (!VERBOSE)
     {
-        printf("%20s:%12lld\n", argv[1] + name_offset(argv[1]), ls_hs->cost + offset);
+        printf("%12lld\n", ls_hs->cost + offset);
         for (int u = 0; u < hg->n; u++)
         {
             if (hg->Vd[u] == 1 || ls_hs->hitting_set[FM_HS[u]])
