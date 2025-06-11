@@ -154,7 +154,7 @@ long long solve_hg(hypergraph *hg, bool is_one_component, int **sol)
 
                 double t0 = get_wtime();
                 // HS = maxsat_solve_hitting_set(hg, sol);
-                HS = maxsat_solve_hitting_set_inmplicit(hg, sol);
+                HS = maxsat_solve_hitting_set_implicit(hg, sol);
                 double t1 = get_wtime();
                 t_total += t1 - t0;
                 if (hg->n > 100)
