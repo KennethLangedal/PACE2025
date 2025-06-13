@@ -1,15 +1,13 @@
+#define _GNU_SOURCE
+
 #include "hypergraph.h"
 #include "graph_csr.h"
-// #include "hs_reduction_to_mwis.h"
+
 #include "chils.h"
 #include "local_search.h"
 #include "local_search_hs.h"
-#include "hs_reductions/degree_one.h"
-#include "hs_reductions/domination.h"
-#include "hs_reductions/extended_domination.h"
-#include "hs_reductions/counting_rule.h"
-#include "hs_reducer.h"
 #include "hs_reductions.h"
+#include "simulated_annealing.h"
 
 #include <time.h>
 #include <stdio.h>
@@ -19,7 +17,7 @@
 #include <string.h>
 #include <limits.h>
 
-#define VERBOSE 0
+#define VERBOSE 1
 
 volatile sig_atomic_t tle = 0;
 
@@ -45,6 +43,14 @@ int name_offset(char *name)
         i++;
     }
     return offset;
+}
+
+int cmp_degree(const void *a, const void *b, void *c)
+{
+    graph_csr *g = (graph_csr *)c;
+    int u = *((const int *)a);
+    int v = *((const int *)b);
+    return (g->V[v + 1] - g->V[v]) - (g->V[u + 1] - g->V[u]);
 }
 
 int main(int argc, char **argv)
@@ -104,12 +110,13 @@ int main(int argc, char **argv)
         m += hg->Vd[i];
 
     for (int i = 0; i < hg->m; i++)
-        m += (hg->Ed[i] * hg->Ed[i]) / 2;
+        if (hg->Ed[i] > 2)
+            m += (hg->Ed[i] * hg->Ed[i]) / 2;
 
-    if ((nr > 5000 && md < 32 && m < 5000000))
+    if ((nr > 5000 || md == 2) && md < 32 && m < 5000000)
     {
         int *FM_MWIS = malloc(sizeof(int) * hg->n);
-        graph *gr = hs_reductions_to_mwis(hg, FM_MWIS, 32, &offset); // (1 << 2)
+        graph *gr = hs_reductions_to_mwis(hg, FM_MWIS, 32, &offset);
 
         if (VERBOSE)
             printf("IS |V|=%lld |E|=%lld offset=%lld\n", gr->nr, gr->m, offset);
@@ -131,8 +138,10 @@ int main(int argc, char **argv)
         }
         else
         {
+
             double tr = 10.0;
-            mwis_reduction_dinsify(gr, rd, tr);
+            if (gr->nr < 10000)
+                mwis_reduction_dinsify(gr, rd, tr);
 
             if (VERBOSE)
                 printf("After densify %lld %lld\n", gr->nr, gr->m);
@@ -195,6 +204,56 @@ int main(int argc, char **argv)
         free(FM_MWIS);
         free(I);
     }
+    else if (mr < 20000)
+    {
+        offset = 0;
+        for (int u = 0; u < hg->n; u++)
+        {
+            if (hg->Vd[u] == 1)
+                offset++;
+        }
+
+        double tr;
+
+        simulated_annealing *sa = simulated_annealing_init(gh, 0);
+        sa->k = 200000000ll;
+
+        while (1)
+        {
+            simulated_annealing_reset(gh, sa);
+            for (int j = 0; j < gh->n; j++)
+                if (!sa->best_hitting_set[j])
+                    simulated_annealing_remove_vertex(gh, sa, j);
+
+            tr = 270.0 - (get_wtime() - t0);
+            if (tr < 0.0)
+                break;
+            simulated_annealing_start(gh, sa, tr, &tle, offset, VERBOSE);
+        }
+
+        // Validate
+        for (int e = 0; e < gh->m; e++)
+        {
+            int hit = 0;
+            for (int i = gh->V[gh->n + e]; i < gh->V[gh->n + e + 1]; i++)
+            {
+                int u = gh->E[i];
+                if (sa->best_hitting_set[u])
+                    hit = 1;
+            }
+            assert(hit);
+        }
+
+        for (int u = 0; u < gh->n; u++)
+        {
+            if (!sa->best_hitting_set[u])
+                local_search_hs_remove_vertex(gh, ls_hs, u);
+        }
+
+        local_search_hs_reset(gh, ls_hs);
+
+        simulated_annealing_free(sa);
+    }
 
     offset = 0;
     for (int u = 0; u < hg->n; u++)
@@ -203,16 +262,50 @@ int main(int argc, char **argv)
             offset++;
     }
 
+    if (gh->n < 5000)
+    {
+        int *order = malloc(sizeof(int) * gh->n);
+        for (int i = 0; i < gh->n; i++)
+            order[i] = i;
+
+        qsort_r(order, gh->n, sizeof(int), cmp_degree, gh);
+
+        for (int t = 0; t < 5; t++)
+        {
+            ls_hs->log_enabled = 0;
+
+            int top = 64;
+            local_search_hs_shuffle(order, top, &ls_hs->seed);
+
+            local_search_hs_reset(gh, ls_hs);
+
+            for (int i = 0; i < top; i++)
+            {
+                int u = order[i];
+                if (ls_hs->score[u] == 0)
+                {
+                    local_search_hs_exclude_vertex(gh, ls_hs, u);
+                }
+            }
+
+            local_search_hs_explore(gh, ls_hs, 1.0, &tle, offset, VERBOSE);
+        }
+
+        free(order);
+    }
+
+    local_search_hs_reset(gh, ls_hs);
+
     local_search_hs_explore(gh, ls_hs, 350.0 - (get_wtime() - t0), &tle, offset, VERBOSE);
 
     if (!VERBOSE)
     {
-        printf("%12lld\n", ls_hs->cost + offset);
-        for (int u = 0; u < hg->n; u++)
-        {
-            if (hg->Vd[u] == 1 || ls_hs->hitting_set[FM_HS[u]])
-                printf("%d\n", u + 1);
-        }
+        printf("%12lld\n", ls_hs->best_cost + offset);
+        // for (int u = 0; u < hg->n; u++)
+        // {
+        //     if (hg->Vd[u] == 1 || ls_hs->best_hitting_set[FM_HS[u]])
+        //         printf("%d\n", u + 1);
+        // }
     }
 
     free(FM_HS);
