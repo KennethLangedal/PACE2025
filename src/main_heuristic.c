@@ -17,7 +17,7 @@
 #include <string.h>
 #include <limits.h>
 
-#define VERBOSE 1
+#define VERBOSE 0
 
 volatile sig_atomic_t tle = 0;
 
@@ -305,11 +305,11 @@ int main(int argc, char **argv)
     if (!VERBOSE)
     {
         printf("%12lld\n", ls_hs->best_cost + offset);
-        // for (int u = 0; u < hg->n; u++)
-        // {
-        //     if (hg->Vd[u] == 1 || ls_hs->best_hitting_set[FM_HS[u]])
-        //         printf("%d\n", u + 1);
-        // }
+        for (int u = 0; u < hg->n; u++)
+        {
+            if (hg->Vd[u] == 1 || ls_hs->best_hitting_set[FM_HS[u]])
+                printf("%d\n", u + 1);
+        }
     }
 
     free(FM_HS);
