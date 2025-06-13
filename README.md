@@ -1,3 +1,5 @@
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 # Algorithm Engineering Group Heidelberg - PACE 2025
 
 Submission for PACE2025 by the algorithm engineering group at Heidelberg University.
