@@ -296,6 +296,10 @@ int main(int argc, char **argv)
 
     local_search_hs_reset(gh, ls_hs);
 
+    for (int i = 0; i < gh->n; i++)
+        if (!ls_hs->best_hitting_set[i])
+            local_search_hs_remove_vertex(gh, ls_hs, i);
+
     local_search_hs_explore(gh, ls_hs, 350.0 - (get_wtime() - t0), &tle, offset, VERBOSE);
 
     if (!VERBOSE)
