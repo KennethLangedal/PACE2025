@@ -122,6 +122,13 @@ long long maxsat_solve_hitting_set(hypergraph *hg, int **res) {
 
     void *sv = ipamir_init();
 
+    // Add one soft clause per vertex
+    for (int i = 0; i < hg->n; i++) {
+        if (hg->Vd[i] == 0) continue;  // skip removed vertices
+
+        ipamir_add_soft_lit(sv, (int32_t)(i + 1), 1);
+    }
+
     // Add one hard clause per hyperedge
     for (int e = 0; e < hg->m; e++) {
         if (hg->Ed[e] == 0) continue;  // skip removed edges
@@ -131,13 +138,6 @@ long long maxsat_solve_hitting_set(hypergraph *hg, int **res) {
             ipamir_add_hard(sv, (int32_t)(v + 1));
         }
         ipamir_add_hard(sv, 0);  // terminate clause
-    }
-
-    // Add one soft clause per vertex
-    for (int i = 0; i < hg->n; i++) {
-        if (hg->Vd[i] == 0) continue;  // skip removed vertices
-
-        ipamir_add_soft_lit(sv, (int32_t)(i + 1), 1);
     }
 
     int result = ipamir_solve(sv);

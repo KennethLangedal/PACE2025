@@ -104,21 +104,23 @@ long long solve_hg(hypergraph *hg, bool is_one_component, int **sol)
 {
     if (is_one_component)
     {
+
         // The hypergraph is one component so solve it
-        double tl = 60.0;
-
-        hs_reductions_degree_one_rule(hg, tl-get_wtime());
-        hs_reductions_vertex_domination(hg, tl-get_wtime());
-        hs_reductions_edge_domination(hg, tl-get_wtime());
-        hs_reductions_degree_one_rule(hg, tl-get_wtime());
-        hs_reductions_vertex_domination(hg, tl-get_wtime());
-        hs_reductions_edge_domination(hg, tl-get_wtime());
-
-        hs_reducer *r = hs_reducer_init(hg, 2,
-                                        hs_degree_one,
-                                        domination);
-        hs_reducer_reduce(r, hg);
-        hs_reducer_free(r);
+        int rc = 1;
+        double tl = 80.0;
+        while (rc > 0)
+        {
+            rc = 0;
+            rc += hs_reductions_degree_one_rule(hg, tl - get_wtime());
+            rc += hs_reductions_edge_domination(hg, tl - get_wtime());
+            rc += hs_reductions_vertex_domination(hg, tl - get_wtime());
+        }
+        rc = 1;
+        while (rc > 0)
+        {
+            rc = 0;
+            rc += hs_reductions_degree_one_rule(hg, 10.0);
+        }
 
         if (hg->n == 1 && hg->m == 1)
         {
@@ -155,8 +157,8 @@ long long solve_hg(hypergraph *hg, bool is_one_component, int **sol)
             {
 
                 double t0 = get_wtime();
-                // HS = maxsat_solve_hitting_set(hg, sol);
-                HS = maxsat_solve_hitting_set_implicit(hg, sol);
+                HS = maxsat_solve_hitting_set(hg, sol);
+                // HS = maxsat_solve_hitting_set_implicit(hg, sol);
                 double t1 = get_wtime();
                 t_total += t1 - t0;
                 if (hg->n > 100)
