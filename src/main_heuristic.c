@@ -308,7 +308,7 @@ int main(int argc, char **argv)
         printf("%12lld\n", ls_hs->best_cost + offset);
         for (int u = 0; u < hg->n; u++)
         {
-            if (hg->Vd[u] == 1 || ls_hs->best_hitting_set[FM_HS[u]])
+            if (hg->Vd[u] == 1 || (hg->Vd[u] > 0 && ls_hs->best_hitting_set[FM_HS[u]]))
                 printf("%d\n", u + 1);
         }
     }
