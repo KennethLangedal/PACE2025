@@ -274,7 +274,7 @@ int main(int argc, char **argv)
         {
             ls_hs->log_enabled = 0;
 
-            int top = 64;
+            int top = gh->n > 64 ? 64 : gh->n;
             local_search_hs_shuffle(order, top, &ls_hs->seed);
 
             local_search_hs_reset(gh, ls_hs);
