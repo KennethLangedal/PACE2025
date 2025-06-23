@@ -4,8 +4,10 @@
 #include <stdbool.h>
 
 void translation_table_free(translation_table *tt) {
+    if (!tt) return;
     free(tt->old);
     free(tt->new);
+    free(tt);
 }
 
 // Comparison function for sorting by key
