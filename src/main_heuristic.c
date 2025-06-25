@@ -218,7 +218,7 @@ int main(int argc, char **argv)
         simulated_annealing *sa = simulated_annealing_init(gh, 0);
         sa->k = 200000000ll;
 
-        while (1)
+        while (!tle)
         {
             simulated_annealing_reset(gh, sa);
             for (int j = 0; j < gh->n; j++)
@@ -262,7 +262,7 @@ int main(int argc, char **argv)
             offset++;
     }
 
-    if (gh->n < 5000 && gh->n > 0)
+    if (gh->n < 5000 && gh->n > 0 && !tle)
     {
         int *order = malloc(sizeof(int) * gh->n);
         for (int i = 0; i < gh->n; i++)
