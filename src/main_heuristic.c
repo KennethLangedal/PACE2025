@@ -66,6 +66,9 @@ int main(int argc, char **argv)
 
     hypergraph_sort(hg);
 
+    if (!VERBOSE)
+        printf("c {\"V_input\":%d,\"E_input\":%d}\n", hg->n, hg->m);
+
     int rc = 1;
     double tl = 80.0;
     while (rc > 0 && tl > (get_wtime() - t0))
@@ -98,6 +101,8 @@ int main(int argc, char **argv)
 
     if (VERBOSE)
         printf("HS |V|=%10d (%10d) |E|=%10d (%10d) in %10.3lf (%10d)\n", nr, hg->n, mr, hg->m, get_wtime() - t0, md);
+    else
+        printf("c {\"V_hs_reductions\":%d,\"E_hs_reductions\":%d}\n", nr, mr);
 
     long long offset = 0;
     int *FM_HS = malloc(sizeof(int) * hg->n);
@@ -125,6 +130,8 @@ int main(int argc, char **argv)
 
         if (VERBOSE)
             printf("%lld %lld\n", gr->nr, gr->m);
+        else
+            printf("c {\"V_is_reductions\":%lld,\"E_is_reductions\":%lld}\n", gr->nr, gr->m);
 
         offset -= mwis_reduction_get_offset(rd);
 
