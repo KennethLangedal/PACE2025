@@ -10,6 +10,10 @@ cd dep
 
 git clone https://github.com/marekpiotrow/UWrMaxSat uwrmaxsat
 
+cd uwrmaxsat
+git checkout df7a4890b74373aaeeb3cc8b99c424178cef5c66
+cd ..
+
 git clone https://github.com/marekpiotrow/cominisatps
 cd cominisatps
 rm core simp mtl utils && ln -s minisat/core minisat/simp minisat/mtl minisat/utils .
