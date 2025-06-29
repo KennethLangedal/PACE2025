@@ -1,6 +1,6 @@
 #!/bin/bash
 
-git clone git@github.com:KarlsruheMIS/DataReductions.git
+git clone https://github.com/KarlsruheMIS/DataReductions.git
 cd DataReductions
 
 git checkout 4637b9e3c19037383ce9da2a0a16aa8990d34aed
