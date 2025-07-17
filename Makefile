@@ -14,13 +14,16 @@ OBJ_HEURISTIC = main_heuristic.o hypergraph.o graph_csr.o local_search.o local_s
 hs_reducer.o hs_reductions.o degree_one.o domination.o  extended_domination.o counting_rule.o simulated_annealing.o
 OBJ_HEURISTIC := $(addprefix bin/, $(OBJ_HEURISTIC))
 
-DEP = $(OBJ_EXACT) $(OBJ_HEURISTIC)
+OBJ_REDUCE = main_reduce.o hypergraph.o hs_reductions.o
+OBJ_REDUCE := $(addprefix bin/, $(OBJ_REDUCE))
+
+DEP = $(OBJ_EXACT) $(OBJ_HEURISTIC) $(OBJ_REDUCE)
 DEP := $(sort $(DEP))
 
 vpath %.c src src/hs_reductions
 vpath %.h include include/hs_reductions
 
-all : HEURISTIC EXACT
+all : HEURISTIC EXACT REDUCE
 
 -include $(DEP:.o=.d)
 
@@ -30,12 +33,15 @@ EXACT : $(OBJ_EXACT)
 HEURISTIC : $(OBJ_HEURISTIC)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
+REDUCE : $(OBJ_REDUCE)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
 bin/%.o : %.c
 	$(CC) $(CFLAGS) -MMD -c $< -o $@
 
 .PHONY : clean
 clean :
-	rm -f EXACT HEURISTIC $(DEP) $(DEP:.o=.d)
+	rm -f EXACT HEURISTIC REDUCE $(DEP) $(DEP:.o=.d)
 
 run-exact:
 	UWRFLAGS="-v0 -no-bin -no-sat -no-par -maxpre-time=60 -scip-cpu=800 -scip-delay=400 -m -bm" ./EXACT < $(GRAPH)
